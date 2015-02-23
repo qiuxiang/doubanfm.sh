@@ -9,7 +9,9 @@ test -f $PATH_PLAYER_PID && rm $PATH_PLAYER_PID
 
 BASE_URL=http://douban.fm/j/app
 CURL="curl -s -c $PATH_COOKIES"
-PLAY=mpg123
+PLAYER=mpg123
+STATE_PLAYING=0
+STATE_STOPED=1
 
 COLOR_RED="\033[0;31m"
 COLOR_GREEN="\033[0;32m"
@@ -102,14 +104,30 @@ play() {
   print_song_info
   notify_song_info
   test -f $PATH_PLAYER_PID && pkill -P `get_player_pid`
-  $PLAY $SONG_URL &> /dev/null && play_next &
+  $PLAYER $SONG_URL &> /dev/null && play_next &
   echo $! > $PATH_PLAYER_PID
+  PLAYER_STATE=$STATE_PLAYING
 }
 
 # param: operation type
 update_and_play() {
   update_playlist $1
   play 2> /dev/null
+}
+
+pause() {
+  case $PLAYER_STATE in
+    $STATE_PLAYING)
+      pkill -19 -P `get_player_pid`
+      PLAYER_STATE=$STATE_STOPED
+      echo -e "${COLOR_YELLOW}paused$COLOR_RESET"
+      ;;
+    $STATE_STOPED)
+      pkill -18 -P `get_player_pid`
+      PLAYER_STATE=$STATE_PLAYING
+      echo -e "${COLOR_GREEN}playing$COLOR_RESET"
+      ;;
+  esac
 }
 
 skip() {
@@ -144,6 +162,9 @@ mainloop() {
         ;;
       n)
         skip
+        ;;
+      p)
+        pause
         ;;
       q)
         quit
