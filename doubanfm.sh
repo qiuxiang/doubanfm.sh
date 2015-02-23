@@ -2,13 +2,14 @@
 
 PATH_BASE=$HOME/.doubanfm.sh
 PATH_COOKIES=$PATH_BASE/cookies.txt
+PATH_PLAYER_PID=$PATH_BASE/player.pid
 
 test -d $PATH_BASE || mkdir $PATH_BASE
+test -f $PATH_PLAYER_PID && rm $PATH_PLAYER_PID
 
 BASE_URL=http://douban.fm/j/app
 CURL="curl -s -c $PATH_COOKIES"
 PLAY=mpg123
-PLAY_PID=-1
 
 COLOR_RED="\033[0;31m"
 COLOR_GREEN="\033[0;32m"
@@ -73,9 +74,8 @@ fetch_song_info() {
 }
 
 print_song_info() {
-  echo -e "$COLOR_YELLOW$SONG_ARTIST - $COLOR_GREEN$SONG_TITLE"
-  echo -e "$COLOR_CYAN$SONG_ALBUM_TITLE$COLOR_RESET ($SONG_ALBUM_URL)"
-  echo -e "$SONG_COMPANY, $SONG_PUBLIC_TIME"
+  echo -e "$COLOR_GREEN$SONG_TITLE$COLOR_RESET by $COLOR_YELLOW$SONG_ARTIST$COLOR_RESET"
+  echo -e "<$COLOR_CYAN$SONG_ALBUM_TITLE$COLOR_RESET> $SONG_PUBLIC_TIME"
 }
 
 notify_song_info() {
@@ -93,13 +93,17 @@ play_next() {
   play 2> /dev/null
 }
 
+get_player_pid() {
+  cat $PATH_PLAYER_PID 2> /dev/null
+}
+
 play() {
   fetch_song_info
   print_song_info
   notify_song_info
-  pkill -P $PLAY_PID > /dev/null
+  test -f $PATH_PLAYER_PID && pkill -P `get_player_pid`
   $PLAY $SONG_URL &> /dev/null && play_next &
-  PLAY_PID=$!
+  echo $! > $PATH_PLAYER_PID
 }
 
 # param: operation type
@@ -113,7 +117,7 @@ skip() {
 }
 
 quit() {
-  pkill -P $PLAY_PID
+  pkill -P `get_player_pid`
   exit
 }
 
