@@ -13,20 +13,24 @@ PLAYER=mpg123
 STATE_PLAYING=0
 STATE_STOPED=1
 
-COLOR_RED="\033[0;31m"
-COLOR_GREEN="\033[0;32m"
-COLOR_YELLOW="\033[0;33m"
-COLOR_BLUE="\033[0;34m"
-COLOR_MAGENTA="\033[0;35m"
-COLOR_CYAN="\033[0;36m"
-COLOR_RESET="\033[0m"
-
 PARAMS_APP_NAME=radio_desktop_win
 PARAMS_VERSION=100
 PARAMS_TYPE=n
 PARAMS_CHANNEL=0
 PARAMS_SID=0
 PARAMS_KBPS=192
+
+green() {
+  echo -e "\033[0;32m$1\033[0m"
+}
+
+yellow() {
+  echo -e "\033[0;33m$1\033[0m"
+}
+
+cyan() {
+  echo -e "\033[0;36m$1\033[0m"
+}
 
 # return: params string
 build_params() {
@@ -76,8 +80,8 @@ fetch_song_info() {
 }
 
 print_song_info() {
-  echo -e "$COLOR_YELLOW$SONG_ARTIST $COLOR_GREEN$SONG_TITLE$COLOR_RESET"
-  echo -e "$COLOR_CYAN<$SONG_ALBUM_TITLE>$COLOR_RESET $SONG_PUBLIC_TIME"
+  echo `green $SONG_TITLE` by `yellow $SONG_ARTIST`
+  echo `cyan "<$SONG_ALBUM_TITLE>"` $SONG_PUBLIC_TIME
 }
 
 notify_song_info() {
@@ -120,12 +124,12 @@ pause() {
     $STATE_PLAYING)
       pkill -19 -P `get_player_pid`
       PLAYER_STATE=$STATE_STOPED
-      echo -e "${COLOR_YELLOW}paused$COLOR_RESET"
+      echo `yellow paused`
       ;;
     $STATE_STOPED)
       pkill -18 -P `get_player_pid`
       PLAYER_STATE=$STATE_PLAYING
-      echo -e "${COLOR_GREEN}playing$COLOR_RESET"
+      echo `cyan playing`
       ;;
   esac
 }
