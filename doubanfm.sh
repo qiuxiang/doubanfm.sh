@@ -8,6 +8,7 @@ test -d $PATH_BASE || mkdir $PATH_BASE
 BASE_URL=http://douban.fm/j/app
 CURL="curl -s -c $PATH_COOKIES"
 PLAY=mpg123
+PLAY_PID=-1
 
 COLOR_RED="\033[0;31m"
 COLOR_GREEN="\033[0;32m"
@@ -72,20 +73,27 @@ notify_song_info() {
 }
 
 next() {
-  sl
+  if [ $PLAYLIST_LENGTH -eq $(( PLAYLIST_COUNT + 1)) ]; then
+    update_playlist p
+    PLAYLIST_COUNT=0
+  else
+    let PLAYLIST_COUNT+=1
+  fi
+
+  play 2> /dev/null
 }
 
 play() {
+  fetch_song_info
   print_song_info
   notify_song_info
+  pkill -P $PLAY_PID > /dev/null
   $PLAY $SONG_URL &> /dev/null && next &
   PLAY_PID=$!
 }
 
 refresh() {
-  test -n "$PLAY_PID" && pkill -P $PLAY_PID
   update_playlist $1
-  fetch_song_info
   play 2> /dev/null
 }
 
@@ -99,15 +107,14 @@ quit() {
 }
 
 print_help() {
-  cat <<-EOF
+  cat <<EOF
 Available commands:
   p                play or pause
   n                next song
   b                hate this song
   r                like or unlike
-  c <channel id>   change channel
   i                display song info
-  s                print channels
+  c                print channels
   l                print playlist
   q                quit
 EOF
@@ -116,16 +123,17 @@ EOF
 mainloop() {
   while true; do
     read -p "> " c
-    case $c in
+    case ${c:0:1} in
       i)
         print_song_info
+        notify_song_info
         ;;
       n)
-        skip
+        #skip
+        next
         ;;
       q)
         quit
-        break
         ;;
       *)
         print_help
