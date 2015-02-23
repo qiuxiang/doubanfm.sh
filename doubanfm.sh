@@ -74,8 +74,8 @@ fetch_song_info() {
 }
 
 print_song_info() {
-  echo -e "$COLOR_GREEN$SONG_TITLE$COLOR_RESET by $COLOR_YELLOW$SONG_ARTIST$COLOR_RESET"
-  echo -e "<$COLOR_CYAN$SONG_ALBUM_TITLE$COLOR_RESET> $SONG_PUBLIC_TIME"
+  echo -e "$COLOR_YELLOW$SONG_ARTIST $COLOR_GREEN$SONG_TITLE$COLOR_RESET"
+  echo -e "$COLOR_CYAN<$SONG_ALBUM_TITLE>$COLOR_RESET $SONG_PUBLIC_TIME"
 }
 
 notify_song_info() {
@@ -123,10 +123,9 @@ quit() {
 
 print_help() {
   cat <<EOF
-Available commands:
   p                play or pause
   n                next song
-  b                hate this song
+  b                remove this song
   r                like or unlike
   i                display song info
   c                print channels
