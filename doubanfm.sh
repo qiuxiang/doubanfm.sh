@@ -25,6 +25,7 @@ PARAMS_CHANNEL=0
 PARAMS_SID=0
 PARAMS_KBPS=192
 
+# return: params string
 build_params() {
   local params="kbps=$PARAMS_KBPS&channel=$PARAMS_CHANNEL"
   params+="&app_name=$PARAMS_APP_NAME&version=$PARAMS_VERSION"
@@ -32,22 +33,31 @@ build_params() {
   echo $params
 }
 
+# param: operation type
+# return: playlist json
 get_playlist() {
-  PARAMS_CHANNEL=$1
-  PARAMS_TYPE=$2
+  PARAMS_TYPE=$1
   $CURL $BASE_URL/radio/people?`build_params`
 }
 
+# assign PLAYLIST
+#
+# param: operation type
 update_playlist() {
-  PLAYLIST=`get_playlist 0 $1`
+  PLAYLIST=`get_playlist $1`
   PLAYLIST_LENGTH=`echo $PLAYLIST | jq '.song | length'`
   PLAYLIST_COUNT=0
 }
 
+# get current song info (depends PLAYLIST and PLAYLIST_COUNT) with key
+#
+# param: key
+# return: value
 get_song_info() {
   echo $PLAYLIST | jq -r .song[$PLAYLIST_COUNT].$1
 }
 
+# assign SONG
 fetch_song_info() {
   SONG_PICTURE_URL=`get_song_info picture`
   SONG_URL=`get_song_info url`
@@ -72,7 +82,7 @@ notify_song_info() {
   notify-send "$SONG_TITLE" "$SONG_ARTIST《$SONG_ALBUM_TITLE》"
 }
 
-next() {
+play_next() {
   if [ $PLAYLIST_LENGTH -eq $(( PLAYLIST_COUNT + 1)) ]; then
     update_playlist p
     PLAYLIST_COUNT=0
@@ -88,17 +98,18 @@ play() {
   print_song_info
   notify_song_info
   pkill -P $PLAY_PID > /dev/null
-  $PLAY $SONG_URL &> /dev/null && next &
+  $PLAY $SONG_URL &> /dev/null && play_next &
   PLAY_PID=$!
 }
 
-refresh() {
+# param: operation type
+update_and_play() {
   update_playlist $1
   play 2> /dev/null
 }
 
 skip() {
-  refresh s
+  update_and_play s
 }
 
 quit() {
@@ -129,8 +140,7 @@ mainloop() {
         notify_song_info
         ;;
       n)
-        #skip
-        next
+        skip
         ;;
       q)
         quit
@@ -143,5 +153,5 @@ mainloop() {
 }
 
 trap quit INT
-refresh n
+update_and_play n
 mainloop
