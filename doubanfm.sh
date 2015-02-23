@@ -80,7 +80,7 @@ fetch_song_info() {
 }
 
 print_song_info() {
-  echo `green $SONG_TITLE` by `yellow $SONG_ARTIST`
+  echo `yellow $SONG_ARTIST` `green $SONG_TITLE`
   echo `cyan "<$SONG_ALBUM_TITLE>"` $SONG_PUBLIC_TIME
 }
 
@@ -134,8 +134,24 @@ pause() {
   esac
 }
 
-skip() {
+song_skip() {
   update_and_play s
+}
+
+song_rate() {
+  echo todo
+}
+
+song_remove() {
+  echo todo
+}
+
+print_playlist() {
+  echo todo
+}
+
+print_channels() {
+  echo todo
 }
 
 quit() {
@@ -144,7 +160,7 @@ quit() {
 }
 
 print_help() {
-  cat <<EOF
+  cat << EOF
   p                play or pause
   n                next song
   b                remove this song
@@ -164,11 +180,23 @@ mainloop() {
         print_song_info
         notify_song_info
         ;;
-      n)
-        skip
-        ;;
       p)
         pause
+        ;;
+      n)
+        song_skip
+        ;;
+      r)
+        song_rate
+        ;;
+      b)
+        song_remove
+        ;;
+      c)
+        print_channels
+        ;;
+      l)
+        print_playlist
         ;;
       q)
         quit
