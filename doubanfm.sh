@@ -10,6 +10,7 @@ test -f $PATH_PLAYER_PID && rm $PATH_PLAYER_PID
 BASE_URL=http://douban.fm/j/app
 CURL="curl -s -c $PATH_COOKIES"
 PLAYER=mpg123
+SONG_SID=
 STATE_PLAYING=0
 STATE_STOPED=1
 
@@ -17,26 +18,25 @@ PARAMS_APP_NAME=radio_desktop_win
 PARAMS_VERSION=100
 PARAMS_TYPE=n
 PARAMS_CHANNEL=0
-PARAMS_SID=0
 PARAMS_KBPS=192
 
 green() {
-  echo -e "\033[0;32m$1\033[0m"
+  echo -e "\033[0;32m$@\033[0m"
 }
 
 yellow() {
-  echo -e "\033[0;33m$1\033[0m"
+  echo -e "\033[0;33m$@\033[0m"
 }
 
 cyan() {
-  echo -e "\033[0;36m$1\033[0m"
+  echo -e "\033[0;36m$@\033[0m"
 }
 
 # return: params string
 build_params() {
   local params="kbps=$PARAMS_KBPS&channel=$PARAMS_CHANNEL"
   params+="&app_name=$PARAMS_APP_NAME&version=$PARAMS_VERSION"
-  params+="&type=$PARAMS_TYPE&sid=$PARAMS_SID"
+  params+="&type=$PARAMS_TYPE&sid=$SONG_SID"
   echo $params
 }
 
