@@ -1,25 +1,44 @@
 #!/usr/bin/env bash
 
+# param: key
+# return: value
+get_config() {
+  cat $PATH_CONFIG | jq .$1
+}
+
+# param: key
+# param: value
+set_config() {
+  cat $PATH_CONFIG | jq ".$1=$2" > $PATH_CONFIG
+}
+
 PATH_BASE=$HOME/.doubanfm.sh
 PATH_COOKIES=$PATH_BASE/cookies.txt
 PATH_PLAYER_PID=$PATH_BASE/player.pid
 PATH_ALBUM_COVER=$PATH_BASE/albumcover
+PATH_CONFIG=$PATH_BASE/config.json
+
+BASE_URL=http://douban.fm/j/app
+CURL="curl -s -c $PATH_COOKIES -b $PATH_COOKIES"
+PLAYER=mpg123
+DEFAULT_CONFIG='{
+  "kbps": 192,
+  "channel": 0
+}'
 
 test -d $PATH_BASE || mkdir $PATH_BASE
 test -d $PATH_ALBUM_COVER || mkdir $PATH_ALBUM_COVER
 test -f $PATH_PLAYER_PID && rm $PATH_PLAYER_PID
-
-BASE_URL=http://douban.fm/j/app
-CURL="curl -s -c $PATH_COOKIES"
-PLAYER=mpg123
-STATE_PLAYING=0
-STATE_STOPED=1
+test -f $PATH_CONFIG || echo $DEFAULT_CONFIG > $PATH_CONFIG
 
 PARAMS_APP_NAME=radio_desktop_win
 PARAMS_VERSION=100
 PARAMS_TYPE=n
-PARAMS_CHANNEL=0
-PARAMS_KBPS=192
+PARAMS_CHANNEL=`get_config channel`
+PARAMS_KBPS=`get_config kbps`
+
+STATE_PLAYING=0
+STATE_STOPED=1
 
 green() {
   echo -e "\033[0;32m$@\033[0m"
