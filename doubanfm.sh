@@ -143,7 +143,7 @@ song_rate() {
 }
 
 song_remove() {
-  echo todo
+  update_and_play b
 }
 
 print_playlist() {
