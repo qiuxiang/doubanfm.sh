@@ -3,8 +3,10 @@
 PATH_BASE=$HOME/.doubanfm.sh
 PATH_COOKIES=$PATH_BASE/cookies.txt
 PATH_PLAYER_PID=$PATH_BASE/player.pid
+PATH_ALBUM_COVER=$PATH_BASE/albumcover
 
 test -d $PATH_BASE || mkdir $PATH_BASE
+test -d $PATH_ALBUM_COVER || mkdir $PATH_ALBUM_COVER
 test -f $PATH_PLAYER_PID && rm $PATH_PLAYER_PID
 
 BASE_URL=http://douban.fm/j/app
@@ -33,7 +35,6 @@ cyan() {
 
 # assign SONG
 fetch_song_info() {
-  SONG_PICTURE_URL=`get_song_info picture`
   SONG_URL=`get_song_info url`
   SONG_SID=`get_song_info sid`
   SONG_ALBUM_URL=http://music.douban.com`get_song_info album`
@@ -44,6 +45,9 @@ fetch_song_info() {
   SONG_LIKED=`get_song_info like`
   SONG_PUBLIC_TIME=`get_song_info public_time`
   SONG_COMPANY=`get_song_info company`
+  SONG_PICTURE_URL=`get_song_info picture`
+  SONG_PICTURE_PATH=$PATH_ALBUM_COVER/${SONG_PICTURE_URL##*/}
+  test -f $SONG_PICTURE_PATH || $CURL $SONG_PICTURE_URL > $SONG_PICTURE_PATH
 }
 
 # return: params string
@@ -84,7 +88,7 @@ print_song_info() {
 }
 
 notify_song_info() {
-  notify-send "$SONG_TITLE" "$SONG_ARTIST《$SONG_ALBUM_TITLE》"
+  notify-send -i $SONG_PICTURE_PATH "$SONG_TITLE" "$SONG_ARTIST《$SONG_ALBUM_TITLE》"
 }
 
 play_next() {
