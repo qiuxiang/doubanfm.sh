@@ -31,6 +31,21 @@ cyan() {
   echo -e "\033[0;36m$@\033[0m"
 }
 
+# assign SONG
+fetch_song_info() {
+  SONG_PICTURE_URL=`get_song_info picture`
+  SONG_URL=`get_song_info url`
+  SONG_SID=`get_song_info sid`
+  SONG_ALBUM_URL=http://music.douban.com`get_song_info album`
+  SONG_ALBUM_TITLE=`get_song_info albumtitle`
+  SONG_TITLE=`get_song_info title`
+  SONG_RATING=`get_song_info rating_avg`
+  SONG_ARTIST=`get_song_info artist`
+  SONG_LIKED=`get_song_info like`
+  SONG_PUBLIC_TIME=`get_song_info public_time`
+  SONG_COMPANY=`get_song_info company`
+}
+
 # return: params string
 build_params() {
   local params="kbps=$PARAMS_KBPS&channel=$PARAMS_CHANNEL"
@@ -61,21 +76,6 @@ update_playlist() {
 # return: value
 get_song_info() {
   echo $PLAYLIST | jq -r .song[$PLAYLIST_COUNT].$1
-}
-
-# assign SONG
-fetch_song_info() {
-  SONG_PICTURE_URL=`get_song_info picture`
-  SONG_URL=`get_song_info url`
-  SONG_SID=`get_song_info sid`
-  SONG_ALBUM_URL=http://music.douban.com`get_song_info album`
-  SONG_ALBUM_TITLE=`get_song_info albumtitle`
-  SONG_TITLE=`get_song_info title`
-  SONG_RATING=`get_song_info rating_avg`
-  SONG_ARTIST=`get_song_info artist`
-  SONG_LIKED=`get_song_info like`
-  SONG_PUBLIC_TIME=`get_song_info public_time`
-  SONG_COMPANY=`get_song_info company`
 }
 
 print_song_info() {
@@ -165,14 +165,14 @@ quit() {
 
 print_help() {
   cat << EOF
-  p                play or pause
-  n                next song
-  b                remove this song
-  r                like or unlike
-  i                display song info
-  c                print channels
-  l                print playlist
-  q                quit
+  p: play or pause
+  n: next song
+  b: remove this song
+  r: like or unlike
+  i: display song info
+  c: print channels
+  l: print playlist
+  q: quit
 EOF
 }
 
