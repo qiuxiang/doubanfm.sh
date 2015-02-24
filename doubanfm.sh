@@ -10,7 +10,6 @@ test -f $PATH_PLAYER_PID && rm $PATH_PLAYER_PID
 BASE_URL=http://douban.fm/j/app
 CURL="curl -s -c $PATH_COOKIES"
 PLAYER=mpg123
-SONG_SID=
 STATE_PLAYING=0
 STATE_STOPED=1
 
@@ -91,7 +90,6 @@ notify_song_info() {
 play_next() {
   if [ $PLAYLIST_LENGTH -eq $(( PLAYLIST_COUNT + 1)) ]; then
     update_playlist p
-    PLAYLIST_COUNT=0
   else
     let PLAYLIST_COUNT+=1
   fi
@@ -139,7 +137,13 @@ song_skip() {
 }
 
 song_rate() {
-  echo todo
+  if [ $SONG_LIKED -eq 0 ]; then
+    update_playlist r
+    SONG_LIKED=1
+  else
+    update_playlist u
+    SONG_LIKED=0
+  fi
 }
 
 song_remove() {
