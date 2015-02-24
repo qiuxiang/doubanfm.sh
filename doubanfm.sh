@@ -45,6 +45,8 @@ fetch_song_info() {
   SONG_LIKED=`get_song_info like`
   SONG_PUBLIC_TIME=`get_song_info public_time`
   SONG_COMPANY=`get_song_info company`
+  SONG_LENGTH=`get_song_info length`
+  SONG_KBPS=`get_song_info kbps`
   SONG_PICTURE_URL=`get_song_info picture`
   SONG_PICTURE_PATH=$PATH_ALBUM_COVER/${SONG_PICTURE_URL##*/}
   test -f $SONG_PICTURE_PATH || $CURL $SONG_PICTURE_URL > $SONG_PICTURE_PATH
@@ -83,8 +85,13 @@ get_song_info() {
 }
 
 print_song_info() {
-  echo `yellow $SONG_ARTIST` `green $SONG_TITLE`
-  echo `cyan "<$SONG_ALBUM_TITLE>"` $SONG_PUBLIC_TIME
+  echo
+  echo "   title: `cyan $SONG_TITLE`"
+  echo "  artist: `cyan $SONG_ARTIST`"
+  echo "   album: `cyan $SONG_ALBUM_TITLE`"
+  echo "    year: `cyan $SONG_PUBLIC_TIME`"
+  echo "  rating: `cyan $SONG_RATING`"
+  printf "    time: `cyan %d:%02d`\n\n" $(( SONG_LENGTH / 60)) $(( SONG_LENGTH / 60))
 }
 
 notify_song_info() {
@@ -101,6 +108,7 @@ play_next() {
   play 2> /dev/null
 }
 
+# return: player pid
 get_player_pid() {
   cat $PATH_PLAYER_PID 2> /dev/null
 }
@@ -110,7 +118,7 @@ play() {
   print_song_info
   notify_song_info
   test -f $PATH_PLAYER_PID && pkill -P `get_player_pid`
-  $PLAYER $SONG_URL &> /dev/null && play_next &
+  $PLAYER $SONG_URL &> /dev/null && echo && play_next &
   echo $! > $PATH_PLAYER_PID
   PLAYER_STATE=$STATE_PLAYING
 }
@@ -169,6 +177,7 @@ quit() {
 
 print_help() {
   cat << EOF
+
   p: play or pause
   n: next song
   b: remove this song
@@ -177,6 +186,7 @@ print_help() {
   c: print channels
   l: print playlist
   q: quit
+
 EOF
 }
 
