@@ -3,7 +3,7 @@
 # param: key
 # return: value
 get_config() {
-  cat $PATH_CONFIG | jq .$1
+  cat $PATH_CONFIG | jq -r .$1
 }
 
 # param: key
@@ -100,6 +100,10 @@ enable_echo() {
   stty echo 2> /dev/null
 }
 
+echo_error() {
+  echo $(red "Error: $1.") >&2
+}
+
 # assign SONG
 fetch_song_info() {
   local index=$(get_playlist_index)
@@ -128,6 +132,7 @@ load_user_info() {
   USER_EXPIRE=$(get_config user.expire)
 }
 
+# assign USER
 save_user_info() {
   set_config user.id $USER_ID
   set_config user.name $USER_NAME
@@ -141,7 +146,7 @@ build_params() {
   local params="kbps=$PARAMS_KBPS&channel=$PARAMS_CHANNEL"
   params+="&app_name=$PARAMS_APP_NAME&version=$PARAMS_VERSION"
   params+="&type=$PARAMS_TYPE&sid=$SONG_SID"
-  test -z $USER_ID && params+="&user_id=$USER_ID&token=$USER_TOKEN&expire=$USER_EXPIRE"
+  test -n $USER_ID && params+="&user_id=$USER_ID&token=$USER_TOKEN&expire=$USER_EXPIRE"
   echo $params
 }
 
@@ -152,6 +157,7 @@ update_playlist() {
   PARAMS_TYPE=$1
   PLAYLIST=$($CURL $BASE_URL/radio/people?$(build_params))
   PLAYLIST_LENGTH=$(echo $PLAYLIST | jq '.song | length')
+  test $PLAYLIST_LENGTH -eq 0 && echo_error "Playlist is empty" && exit 1
   set_playlist_index 0
 }
 
@@ -176,10 +182,6 @@ print_song_info() {
 
 notify_song_info() {
   notify-send -i $SONG_PICTURE_PATH "$SONG_TITLE" "$SONG_ARTIST《$SONG_ALBUM_TITLE》"
-}
-
-echo_error() {
-  echo $(red "Error: $1") >&2
 }
 
 play_next() {
