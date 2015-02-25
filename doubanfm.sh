@@ -10,7 +10,7 @@ get_config() {
 # param: value
 set_config() {
   # can't use pipeline, because input file can't as output file
-  CONFIG=`cat $PATH_CONFIG | jq ".$1=$2"`
+  CONFIG=$(cat $PATH_CONFIG | jq ".$1=$2")
   echo $CONFIG > $PATH_CONFIG
 }
 
@@ -36,8 +36,8 @@ test -f $PATH_CONFIG || echo $DEFAULT_CONFIG > $PATH_CONFIG
 PARAMS_APP_NAME=radio_desktop_win
 PARAMS_VERSION=100
 PARAMS_TYPE=n
-PARAMS_CHANNEL=`get_config channel`
-PARAMS_KBPS=`get_config kbps`
+PARAMS_CHANNEL=$(get_config channel)
+PARAMS_KBPS=$(get_config kbps)
 
 STATE_PLAYING=0
 STATE_STOPED=1
@@ -56,19 +56,19 @@ cyan() {
 
 # assign SONG
 fetch_song_info() {
-  SONG_URL=`get_song_info url`
-  SONG_SID=`get_song_info sid`
-  SONG_ALBUM_URL=http://music.douban.com`get_song_info album`
-  SONG_ALBUM_TITLE=`get_song_info albumtitle`
-  SONG_TITLE=`get_song_info title`
-  SONG_RATING=`get_song_info rating_avg`
-  SONG_ARTIST=`get_song_info artist`
-  SONG_LIKED=`get_song_info like`
-  SONG_PUBLIC_TIME=`get_song_info public_time`
-  SONG_COMPANY=`get_song_info company`
-  SONG_LENGTH=`get_song_info length`
-  SONG_KBPS=`get_song_info kbps`
-  SONG_PICTURE_URL=`get_song_info picture`
+  SONG_URL=$(get_song_info url)
+  SONG_SID=$(get_song_info sid)
+  SONG_ALBUM_URL=http://music.douban.com$(get_song_info album)
+  SONG_ALBUM_TITLE=$(get_song_info albumtitle)
+  SONG_TITLE=$(get_song_info title)
+  SONG_RATING=$(get_song_info rating_avg)
+  SONG_ARTIST=$(get_song_info artist)
+  SONG_LIKED=$(get_song_info like)
+  SONG_PUBLIC_TIME=$(get_song_info public_time)
+  SONG_COMPANY=$(get_song_info company)
+  SONG_LENGTH=$(get_song_info length)
+  SONG_KBPS=$(get_song_info kbps)
+  SONG_PICTURE_URL=$(get_song_info picture)
   SONG_PICTURE_PATH=$PATH_ALBUM_COVER/${SONG_PICTURE_URL##*/}
   test -f $SONG_PICTURE_PATH || $CURL $SONG_PICTURE_URL > $SONG_PICTURE_PATH
 }
@@ -85,15 +85,15 @@ build_params() {
 # return: playlist json
 get_playlist() {
   PARAMS_TYPE=$1
-  $CURL $BASE_URL/radio/people?`build_params`
+  $CURL $BASE_URL/radio/people?$(build_params)
 }
 
 # assign PLAYLIST
 #
 # param: operation type
 update_playlist() {
-  PLAYLIST=`get_playlist $1`
-  PLAYLIST_LENGTH=`echo $PLAYLIST | jq '.song | length'`
+  PLAYLIST=$(get_playlist $1)
+  PLAYLIST_LENGTH=$(echo $PLAYLIST | jq '.song | length')
   PLAYLIST_COUNT=0
 }
 
@@ -107,12 +107,12 @@ get_song_info() {
 
 print_song_info() {
   echo
-  echo "   title: `cyan $SONG_TITLE`"
-  echo "  artist: `cyan $SONG_ARTIST`"
-  echo "   album: `cyan $SONG_ALBUM_TITLE`"
-  echo "    year: `cyan $SONG_PUBLIC_TIME`"
-  echo "  rating: `cyan $SONG_RATING`"
-  printf "    time: `cyan %d:%02d`\n\n" $(( SONG_LENGTH / 60)) $(( SONG_LENGTH % 60))
+  echo "   title: $(cyan $SONG_TITLE)"
+  echo "  artist: $(cyan $SONG_ARTIST)"
+  echo "   album: $(cyan $SONG_ALBUM_TITLE)"
+  echo "    year: $(cyan $SONG_PUBLIC_TIME)"
+  echo "  rating: $(cyan $SONG_RATING)"
+  printf "    time: $(cyan %d:%02d)\n\n" $(( SONG_LENGTH / 60)) $(( SONG_LENGTH % 60))
 }
 
 notify_song_info() {
@@ -138,7 +138,7 @@ play() {
   fetch_song_info
   print_song_info
   notify_song_info
-  test -f $PATH_PLAYER_PID && pkill -P `get_player_pid`
+  test -f $PATH_PLAYER_PID && pkill -P $(get_player_pid)
   $PLAYER $SONG_URL &> /dev/null && play_next &
   echo $! > $PATH_PLAYER_PID
   PLAYER_STATE=$STATE_PLAYING
@@ -153,14 +153,14 @@ update_and_play() {
 pause() {
   case $PLAYER_STATE in
     $STATE_PLAYING)
-      pkill -19 -P `get_player_pid`
+      pkill -19 -P $(get_player_pid)
       PLAYER_STATE=$STATE_STOPED
-      echo "  "`yellow paused`
+      echo "  "$(yellow paused)
       ;;
     $STATE_STOPED)
-      pkill -18 -P `get_player_pid`
+      pkill -18 -P $(get_player_pid)
       PLAYER_STATE=$STATE_PLAYING
-      echo "  "`cyan playing`
+      echo "  "$(cyan playing)
       ;;
   esac
 }
@@ -184,7 +184,18 @@ song_remove() {
 }
 
 print_playlist() {
-  echo todo
+  local playlist_count=$PLAYLIST_COUNT
+  echo
+  for (( i = 0; i < PLAYLIST_LENGTH; i++ )) do
+    PLAYLIST_COUNT=$i
+    if [ $i -eq $playlist_count ]; then
+      echo "♪ $(yellow $(get_song_info artist)) - $(green $(get_song_info title))"
+    else
+      echo "  $(yellow $(get_song_info artist)) - $(green $(get_song_info title))"
+    fi
+  done
+  echo
+  PLAYLIST_COUNT=$playlist_count
 }
 
 print_channels() {
@@ -192,7 +203,7 @@ print_channels() {
 }
 
 quit() {
-  pkill -P `get_player_pid`
+  pkill -P $(get_player_pid)
   exit
 }
 
@@ -223,7 +234,8 @@ mainloop() {
         pause
         ;;
       n)
-        song_skip
+        #song_skip
+        play_next
         ;;
       r)
         song_rate
