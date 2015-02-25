@@ -59,6 +59,16 @@ yellow() {
   echo -e "\033[0;33m$@\033[0m"
 }
 
+# wrap color blue
+blue() {
+  echo -e "\033[0;34m$@\033[0m"
+}
+
+# wrap color magenta
+magenta() {
+  echo -e "\033[0;35m$@\033[0m"
+}
+
 # wrap color cyan
 cyan() {
   echo -e "\033[0;36m$@\033[0m"
@@ -123,12 +133,12 @@ get_song_info() {
 
 print_song_info() {
   echo
-  echo "   title: $(cyan $SONG_TITLE)"
-  echo "  artist: $(cyan $SONG_ARTIST)"
-  echo "   album: $(cyan $SONG_ALBUM_TITLE)"
-  echo "    year: $(cyan $SONG_PUBLIC_TIME)"
-  echo "  rating: $(cyan $SONG_RATING)"
-  printf "    time: $(cyan %d:%02d)\n" $(( SONG_LENGTH / 60)) $(( SONG_LENGTH % 60))
+  echo "   title $(blue $SONG_TITLE)"
+  echo "  artist $(blue $SONG_ARTIST)"
+  echo "   album $(blue $SONG_ALBUM_TITLE)"
+  echo "    year $(blue $SONG_PUBLIC_TIME)"
+  echo "  rating $(blue $SONG_RATING)"
+  printf "    time $(blue %d:%02d)\n" $(( SONG_LENGTH / 60)) $(( SONG_LENGTH % 60))
 }
 
 notify_song_info() {
@@ -211,9 +221,9 @@ print_playlist() {
   echo
   for (( i = 0; i < PLAYLIST_LENGTH; i++ )) do
     if [ $i -eq $current_index ]; then
-      printf "♪ $(yellow $(get_song_info $i artist)) - $(green $(get_song_info $i title))\n"
+      printf "♪ $(yellow $(get_song_info $i artist)) $(green $(get_song_info $i title))\n"
     else
-      printf "  $(yellow $(get_song_info $i artist)) - $(green $(get_song_info $i title))\n"
+      printf "  $(yellow $(get_song_info $i artist)) $(green $(get_song_info $i title))\n"
     fi
   done
 }
@@ -231,14 +241,14 @@ quit() {
 print_commands() {
   cat << EOF
 
-  p: play or pause
-  n: next song
-  b: remove this song
-  r: like or unlike
-  i: display song info
-  c: print channels
-  l: print playlist
-  q: quit
+  [$(cyan p)] play or pause
+  [$(cyan n)] next song
+  [$(cyan b)] remove this song
+  [$(cyan r)] like or unlike
+  [$(cyan i)] display song info
+  [$(cyan c)] print channels
+  [$(cyan l)] print playlist
+  [$(cyan q)] quit
 EOF
 }
 
@@ -298,12 +308,26 @@ set_channel() {
   fi
 }
 
-while getopts "c:k:" opt; do
+print_help() {
+  cat << EOF
+Usage: $0 [-c channel_id | -k kbps]
+
+Options:
+  -c channel_id    select channel
+  -k kbps          set kbps, available values is 64, 128, 192
+EOF
+}
+
+while getopts "c:k:h" opt; do
   case $opt in
     c)
       set_channel $OPTARG ;;
     k)
       set_kbps $OPTARG ;;
+    h)
+      print_help
+      exit
+      ;;
   esac
 done
 
