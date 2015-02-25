@@ -275,6 +275,10 @@ while getopts "c:" opt; do
        PARAMS_CHANNEL=$OPTARG
        set_config channel $OPTARG
        ;;
+     k)
+       PARAMS_KBPS=$OPTARG
+       set_config kbps $OPTARG
+       ;;
   esac
 done
 
