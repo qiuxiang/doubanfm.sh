@@ -133,12 +133,12 @@ get_song_info() {
 
 print_song_info() {
   echo
-  echo "   title $(blue $SONG_TITLE)"
-  echo "  artist $(blue $SONG_ARTIST)"
-  echo "   album $(blue $SONG_ALBUM_TITLE)"
-  echo "    year $(blue $SONG_PUBLIC_TIME)"
-  echo "  rating $(blue $SONG_RATING)"
-  printf "    time $(blue %d:%02d)\n" $(( SONG_LENGTH / 60)) $(( SONG_LENGTH % 60))
+  echo "   Title $(blue $SONG_TITLE)"
+  echo "  Artist $(blue $SONG_ARTIST)"
+  echo "   Album $(blue $SONG_ALBUM_TITLE)"
+  echo "    Year $(blue $SONG_PUBLIC_TIME)"
+  echo "  Rating $(blue $SONG_RATING)"
+  printf "    Time $(blue %d:%02d)\n" $(( SONG_LENGTH / 60)) $(( SONG_LENGTH % 60))
 }
 
 notify_song_info() {
@@ -146,7 +146,7 @@ notify_song_info() {
 }
 
 echo_error() {
-  echo "error: $(red $1)" >&2
+  echo $(red "Error: $1") >&2
 }
 
 play_next() {
@@ -186,12 +186,12 @@ pause() {
     $STATE_PLAYING)
       pkill -19 -P $(get_player_pid)
       PLAYER_STATE=$STATE_STOPED
-      printf "\n  $(yellow paused)\n"
+      printf "\n  $(yellow Paused)\n"
       ;;
     $STATE_STOPED)
       pkill -18 -P $(get_player_pid)
       PLAYER_STATE=$STATE_PLAYING
-      printf "\n  $(cyan playing)\n"
+      printf "\n  $(cyan Playing)\n"
       ;;
   esac
 }
@@ -221,9 +221,9 @@ print_playlist() {
   echo
   for (( i = 0; i < PLAYLIST_LENGTH; i++ )) do
     if [ $i -eq $current_index ]; then
-      printf "♪ $(yellow $(get_song_info $i artist)) $(green $(get_song_info $i title))\n"
+      printf "♪ $(yellow $(get_song_info $i artist)) - $(green $(get_song_info $i title))\n"
     else
-      printf "  $(yellow $(get_song_info $i artist)) $(green $(get_song_info $i title))\n"
+      printf "  $(yellow $(get_song_info $i artist)) - $(green $(get_song_info $i title))\n"
     fi
   done
 }
@@ -294,7 +294,7 @@ set_kbps() {
     PARAMS_KBPS=$1
     set_config kbps $1
   else
-    echo_error "available kbps values is 64, 128, 192"
+    echo_error "Available kbps values is 64, 128, 192"
   fi
 }
 
@@ -304,7 +304,7 @@ set_channel() {
     PARAMS_CHANNEL=$1
     set_config channel $1
   else
-    echo_error "channel id must be a number"
+    echo_error "Channel id must be a number"
   fi
 }
 
@@ -321,9 +321,11 @@ EOF
 while getopts "c:k:h" opt; do
   case $opt in
     c)
-      set_channel $OPTARG ;;
+      set_channel $OPTARG
+      ;;
     k)
-      set_kbps $OPTARG ;;
+      set_kbps $OPTARG
+      ;;
     h)
       print_help
       exit
