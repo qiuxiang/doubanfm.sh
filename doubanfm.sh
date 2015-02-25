@@ -175,14 +175,22 @@ get_song_info() {
   echo $PLAYLIST | jq -r .song[$1].$2
 }
 
+# param: 0 or 1
+# return: ♡ or ♥
+liked_symbol() {
+  if [ $1 = 1 ]; then
+    printf "♥"
+  else
+    printf "♡"
+  fi
+}
+
 print_song_info() {
+  time=$(printf "%d:%02d" $(( SONG_LENGTH / 60)) $(( SONG_LENGTH % 60)))
   echo
-  echo "   Title $(blue $SONG_TITLE)"
-  echo "  Artist $(blue $SONG_ARTIST)"
-  echo "   Album $(blue $SONG_ALBUM_TITLE)"
-  echo "    Year $(blue $SONG_PUBLIC_TIME)"
-  echo "  Rating $(blue $SONG_RATING)"
-  printf "    Time $(blue %d:%02d)\n" $(( SONG_LENGTH / 60)) $(( SONG_LENGTH % 60))
+  echo "  $(green $SONG_ARTIST) - $(yellow $SONG_TITLE) ($time)"
+  echo "  $(cyan \<$SONG_ALBUM_TITLE\> $SONG_PUBLIC_TIME)"
+  echo "  $SONG_RATING $(liked_symbol $SONG_LIKED)"
 }
 
 notify_song_info() {
