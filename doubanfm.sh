@@ -288,6 +288,8 @@ print_commands() {
   [$(cyan i)] display song info
   [$(cyan c)] print channels
   [$(cyan l)] print playlist
+  [$(cyan s)] login
+  [$(cyan o)] logout
   [$(cyan q)] quit
 EOF
 }
