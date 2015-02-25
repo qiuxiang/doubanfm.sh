@@ -44,6 +44,11 @@ PARAMS_KBPS=$(get_config kbps)
 STATE_PLAYING=0
 STATE_STOPED=1
 
+# wrap color red
+red() {
+  echo -e "\033[0;31m$@\033[0m"
+}
+
 # wrap color green
 green() {
   echo -e "\033[0;32m$@\033[0m"
@@ -128,6 +133,10 @@ print_song_info() {
 
 notify_song_info() {
   notify-send -i $SONG_PICTURE_PATH "$SONG_TITLE" "$SONG_ARTIST《$SONG_ALBUM_TITLE》"
+}
+
+echo_error() {
+  echo "error: $(red $1)" >&2
 }
 
 play_next() {
@@ -269,16 +278,32 @@ mainloop() {
   done
 }
 
-while getopts "c:" opt; do
+# param: kbps (64, 128, 192)
+set_kbps() {
+  if [[ $1 =~ 64|128|192 ]]; then
+    PARAMS_KBPS=$1
+    set_config kbps $1
+  else
+    echo_error "available kbps values is 64, 128, 192"
+  fi
+}
+
+# param: channel id
+set_channel() {
+  if [[ $1 =~ ^-?[0-9]+$ ]]; then
+    PARAMS_CHANNEL=$1
+    set_config channel $1
+  else
+    echo_error "channel id must be a number"
+  fi
+}
+
+while getopts "c:k:" opt; do
   case $opt in
-     c)
-       PARAMS_CHANNEL=$OPTARG
-       set_config channel $OPTARG
-       ;;
-     k)
-       PARAMS_KBPS=$OPTARG
-       set_config kbps $OPTARG
-       ;;
+    c)
+      set_channel $OPTARG ;;
+    k)
+      set_kbps $OPTARG ;;
   esac
 done
 
