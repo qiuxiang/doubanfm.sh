@@ -10,7 +10,7 @@ get_config() {
 # param: value
 set_config() {
   # can't use pipeline, because input file can't as output file
-  CONFIG=$(cat $PATH_CONFIG | jq ".$1=$2")
+  CONFIG=$(cat $PATH_CONFIG | jq ".$1=\"$2\"")
   echo $CONFIG > $PATH_CONFIG
 }
 
@@ -84,6 +84,22 @@ set_playlist_index() {
   echo $1 > $PATH_PLAYLIST_INDEX
 }
 
+hide_cursor() {
+  printf "\e[?25l"
+}
+
+show_cursor() {
+  printf "\e[?25h"
+}
+
+disable_echo() {
+  stty -echo 2> /dev/null
+}
+
+enable_echo() {
+  stty echo 2> /dev/null
+}
+
 # assign SONG
 fetch_song_info() {
   local index=$(get_playlist_index)
@@ -104,11 +120,28 @@ fetch_song_info() {
   test -f $SONG_PICTURE_PATH || $CURL $SONG_PICTURE_URL > $SONG_PICTURE_PATH
 }
 
+load_user_info() {
+  USER_NAME=$(get_config user.name)
+  USER_EMAIL=$(get_config user.email)
+  USER_ID=$(get_config user.id)
+  USER_TOKEN=$(get_config user.token)
+  USER_EXPIRE=$(get_config user.expire)
+}
+
+save_user_info() {
+  set_config user.id $USER_ID
+  set_config user.name $USER_NAME
+  set_config user.email $USER_EMAIL
+  set_config user.token $USER_TOKEN
+  set_config user.expire $USER_EXPIRE
+}
+
 # return: params string
 build_params() {
   local params="kbps=$PARAMS_KBPS&channel=$PARAMS_CHANNEL"
   params+="&app_name=$PARAMS_APP_NAME&version=$PARAMS_VERSION"
   params+="&type=$PARAMS_TYPE&sid=$SONG_SID"
+  test -z $USER_ID && params+="&user_id=$USER_ID&token=$USER_TOKEN&expire=$USER_EXPIRE"
   echo $params
 }
 
@@ -233,8 +266,9 @@ print_channels() {
 }
 
 quit() {
-  pkill -P $(get_player_pid)
-  echo -e "\e[?25h" # show cursor
+  pkill -P $(get_player_pid) > /dev/null 2>&1
+  show_cursor
+  echo
   exit
 }
 
@@ -250,6 +284,33 @@ print_commands() {
   [$(cyan l)] print playlist
   [$(cyan q)] quit
 EOF
+}
+
+login() {
+  echo
+  show_cursor
+  enable_echo
+  read -p "Email: " email
+
+  disable_echo
+  hide_cursor
+  read -p "Password: " password
+
+  local data="email=$email&password=$password&"
+  data+="app_name=$PARAMS_APP_NAME&version=$PARAMS_VERSION"
+  local result=$($CURL -d $data http://www.douban.com/j/app/login)
+  local message=$(echo $result | jq -r .err)
+  if [ $message = "ok" ]; then
+    USER_NAME=$(echo $result | jq -r .user_name)
+    USER_EMAIL=$(echo $result | jq -r .email)
+    USER_ID=$(echo $result | jq -r .user_id)
+    USER_TOKEN=$(echo $result | jq -r .token)
+    USER_EXPIRE=$(echo $result | jq -r .expire)
+    save_user_info
+    echo $(green "Login success: $(yellow $USER_NAME) <$USER_EMAIL>\n")
+  else
+    echo $(red "Login failed: $message\n")
+  fi
 }
 
 mainloop() {
@@ -277,6 +338,9 @@ mainloop() {
         ;;
       l)
         print_playlist
+        ;;
+      s)
+        login
         ;;
       q)
         quit
@@ -335,6 +399,7 @@ done
 
 trap quit INT
 stty -echo 2> /dev/null
-printf "\e[?25l" # hide cursor
+hide_cursor
+load_user_info
 update_and_play n
 mainloop
