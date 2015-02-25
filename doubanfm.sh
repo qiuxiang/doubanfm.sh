@@ -19,6 +19,7 @@ PATH_COOKIES=$PATH_BASE/cookies.txt
 PATH_PLAYER_PID=$PATH_BASE/player.pid
 PATH_ALBUM_COVER=$PATH_BASE/albumcover
 PATH_CONFIG=$PATH_BASE/config.json
+PATH_PLAYLIST_INDEX=$PATH_BASE/index
 
 BASE_URL=http://douban.fm/j/app
 CURL="curl -s -c $PATH_COOKIES -b $PATH_COOKIES"
@@ -32,6 +33,7 @@ test -d $PATH_BASE || mkdir $PATH_BASE
 test -d $PATH_ALBUM_COVER || mkdir $PATH_ALBUM_COVER
 test -f $PATH_PLAYER_PID && rm $PATH_PLAYER_PID
 test -f $PATH_CONFIG || echo $DEFAULT_CONFIG > $PATH_CONFIG
+test -f $PATH_PLAYLIST_INDEX || echo 0 > $PATH_PLAYLIST_INDEX
 
 PARAMS_APP_NAME=radio_desktop_win
 PARAMS_VERSION=100
@@ -54,21 +56,32 @@ cyan() {
   echo -e "\033[0;36m$@\033[0m"
 }
 
+# return: playlist index
+get_playlist_index() {
+  cat $PATH_PLAYLIST_INDEX
+}
+
+# param: playlist index
+set_playlist_index() {
+  echo $1 > $PATH_PLAYLIST_INDEX
+}
+
 # assign SONG
 fetch_song_info() {
-  SONG_URL=$(get_song_info url)
-  SONG_SID=$(get_song_info sid)
-  SONG_ALBUM_URL=http://music.douban.com$(get_song_info album)
-  SONG_ALBUM_TITLE=$(get_song_info albumtitle)
-  SONG_TITLE=$(get_song_info title)
-  SONG_RATING=$(get_song_info rating_avg)
-  SONG_ARTIST=$(get_song_info artist)
-  SONG_LIKED=$(get_song_info like)
-  SONG_PUBLIC_TIME=$(get_song_info public_time)
-  SONG_COMPANY=$(get_song_info company)
-  SONG_LENGTH=$(get_song_info length)
-  SONG_KBPS=$(get_song_info kbps)
-  SONG_PICTURE_URL=$(get_song_info picture)
+  local index=$(get_playlist_index)
+  SONG_URL=$(get_song_info $index url)
+  SONG_SID=$(get_song_info $index sid)
+  SONG_ALBUM_URL=http://music.douban.com$(get_song_info $index album)
+  SONG_ALBUM_TITLE=$(get_song_info $index albumtitle)
+  SONG_TITLE=$(get_song_info $index title)
+  SONG_RATING=$(get_song_info $index rating_avg)
+  SONG_ARTIST=$(get_song_info $index artist)
+  SONG_LIKED=$(get_song_info $index like)
+  SONG_PUBLIC_TIME=$(get_song_info $index public_time)
+  SONG_COMPANY=$(get_song_info $index company)
+  SONG_LENGTH=$(get_song_info $index length)
+  SONG_KBPS=$(get_song_info $index kbps)
+  SONG_PICTURE_URL=$(get_song_info $index picture)
   SONG_PICTURE_PATH=$PATH_ALBUM_COVER/${SONG_PICTURE_URL##*/}
   test -f $SONG_PICTURE_PATH || $CURL $SONG_PICTURE_URL > $SONG_PICTURE_PATH
 }
@@ -81,28 +94,23 @@ build_params() {
   echo $params
 }
 
-# param: operation type
-# return: playlist json
-get_playlist() {
-  PARAMS_TYPE=$1
-  $CURL $BASE_URL/radio/people?$(build_params)
-}
-
 # assign PLAYLIST
 #
 # param: operation type
 update_playlist() {
-  PLAYLIST=$(get_playlist $1)
+  PARAMS_TYPE=$1
+  PLAYLIST=$($CURL $BASE_URL/radio/people?$(build_params))
   PLAYLIST_LENGTH=$(echo $PLAYLIST | jq '.song | length')
-  PLAYLIST_COUNT=0
+  set_playlist_index 0
 }
 
-# get current song info (depends PLAYLIST and PLAYLIST_COUNT) with key
+# get song info from PLAYLIST
 #
+# param: playlist index
 # param: key
 # return: value
 get_song_info() {
-  echo $PLAYLIST | jq -r .song[$PLAYLIST_COUNT].$1
+  echo $PLAYLIST | jq -r .song[$1].$2
 }
 
 print_song_info() {
@@ -112,7 +120,7 @@ print_song_info() {
   echo "   album: $(cyan $SONG_ALBUM_TITLE)"
   echo "    year: $(cyan $SONG_PUBLIC_TIME)"
   echo "  rating: $(cyan $SONG_RATING)"
-  printf "    time: $(cyan %d:%02d)\n\n" $(( SONG_LENGTH / 60)) $(( SONG_LENGTH % 60))
+  printf "    time: $(cyan %d:%02d)\n" $(( SONG_LENGTH / 60)) $(( SONG_LENGTH % 60))
 }
 
 notify_song_info() {
@@ -120,10 +128,11 @@ notify_song_info() {
 }
 
 play_next() {
-  if [ $PLAYLIST_LENGTH -eq $(( PLAYLIST_COUNT + 1)) ]; then
+  local index=$(( $(get_playlist_index) + 1))
+  if [ $PLAYLIST_LENGTH -eq $index ]; then
     update_playlist p
   else
-    let PLAYLIST_COUNT+=1
+    set_playlist_index $index
   fi
 
   play 2> /dev/null
@@ -155,12 +164,12 @@ pause() {
     $STATE_PLAYING)
       pkill -19 -P $(get_player_pid)
       PLAYER_STATE=$STATE_STOPED
-      echo "  "$(yellow paused)
+      printf "\n  $(yellow paused)\n"
       ;;
     $STATE_STOPED)
       pkill -18 -P $(get_player_pid)
       PLAYER_STATE=$STATE_PLAYING
-      echo "  "$(cyan playing)
+      printf "\n  $(cyan playing)\n"
       ;;
   esac
 }
@@ -184,18 +193,15 @@ song_remove() {
 }
 
 print_playlist() {
-  local playlist_count=$PLAYLIST_COUNT
+  local current_index=$(get_playlist_index)
   echo
   for (( i = 0; i < PLAYLIST_LENGTH; i++ )) do
-    PLAYLIST_COUNT=$i
-    if [ $i -eq $playlist_count ]; then
-      echo "♪ $(yellow $(get_song_info artist)) - $(green $(get_song_info title))"
+    if [ $i -eq $current_index ]; then
+      printf "♪ $(yellow $(get_song_info $i artist)) - $(green $(get_song_info $i title))\n"
     else
-      echo "  $(yellow $(get_song_info artist)) - $(green $(get_song_info title))"
+      printf "  $(yellow $(get_song_info $i artist)) - $(green $(get_song_info $i title))\n"
     fi
   done
-  echo
-  PLAYLIST_COUNT=$playlist_count
 }
 
 print_channels() {
@@ -204,6 +210,7 @@ print_channels() {
 
 quit() {
   pkill -P $(get_player_pid)
+  clear
   exit
 }
 
@@ -218,13 +225,12 @@ print_help() {
   c: print channels
   l: print playlist
   q: quit
-
 EOF
 }
 
 mainloop() {
   while true; do
-    read -p "> " c
+    read -n 1 c
     case ${c:0:1} in
       i)
         print_song_info
@@ -234,8 +240,7 @@ mainloop() {
         pause
         ;;
       n)
-        #song_skip
-        play_next
+        song_skip
         ;;
       r)
         song_rate
@@ -252,7 +257,7 @@ mainloop() {
       q)
         quit
         ;;
-      *)
+      h)
         print_help
         ;;
     esac
@@ -260,5 +265,8 @@ mainloop() {
 }
 
 trap quit INT
+tput smcup 2> /dev/null
+stty -echo 2> /dev/null
+printf "\e[?25l"
 update_and_play n
 mainloop
