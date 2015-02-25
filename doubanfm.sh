@@ -188,13 +188,14 @@ liked_symbol() {
 print_song_info() {
   local time=$(printf "%d:%02d" $(( SONG_LENGTH / 60)) $(( SONG_LENGTH % 60)))
   echo
-  echo "  $(green $SONG_ARTIST) - $(yellow $SONG_TITLE) ($time)"
+  echo "  $(yellow $SONG_ARTIST) - $(green $SONG_TITLE) ($time)"
   echo "  $(cyan \<$SONG_ALBUM_TITLE\> $SONG_PUBLIC_TIME)"
   echo "  $SONG_RATING $(liked_symbol $SONG_LIKED)"
 }
 
 notify_song_info() {
-  notify-send -i $SONG_PICTURE_PATH "$SONG_TITLE" "$SONG_ARTIST《$SONG_ALBUM_TITLE》"
+  notify-send -i $SONG_PICTURE_PATH \
+    "$SONG_TITLE" "$SONG_ARTIST《$SONG_ALBUM_TITLE》"
 }
 
 play_next() {
@@ -268,10 +269,12 @@ print_playlist() {
   local current_index=$(get_playlist_index)
   echo
   for (( i = 0; i < PLAYLIST_LENGTH; i++ )) do
+    local artist=$(yellow $(get_song_info $i artist))
+    local title=$(green $(get_song_info $i title))
     if [ $i = $current_index ]; then
-      printf "♪ $(yellow $(get_song_info $i artist)) - $(green $(get_song_info $i title))\n"
+      echo "♪ $artist - $title"
     else
-      printf "  $(yellow $(get_song_info $i artist)) - $(green $(get_song_info $i title))\n"
+      echo "  $artist - $title"
     fi
   done
 }
