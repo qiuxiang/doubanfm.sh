@@ -44,14 +44,17 @@ PARAMS_KBPS=$(get_config kbps)
 STATE_PLAYING=0
 STATE_STOPED=1
 
+# wrap color green
 green() {
   echo -e "\033[0;32m$@\033[0m"
 }
 
+# wrap color yellow
 yellow() {
   echo -e "\033[0;33m$@\033[0m"
 }
 
+# wrap color cyan
 cyan() {
   echo -e "\033[0;36m$@\033[0m"
 }
@@ -267,6 +270,6 @@ mainloop() {
 trap quit INT
 tput smcup 2> /dev/null
 stty -echo 2> /dev/null
-printf "\e[?25l"
+printf "\e[?25l" # hide cursor
 update_and_play n
 mainloop
