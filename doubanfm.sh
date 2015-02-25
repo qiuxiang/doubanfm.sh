@@ -185,17 +185,33 @@ liked_symbol() {
   fi
 }
 
+# param: [0, 5]
+# return: ★★★☆☆
+rating() {
+  local n=$(echo $1 | awk '{print int($1+0.5)}')
+  local s=""
+  for (( i = 0; i < 5; i++ )) do
+    if [ $i -lt $n ]; then
+      s+="★"
+    else
+      s+="☆"
+    fi
+  done
+  echo $s
+}
+
 print_song_info() {
   local time=$(printf "%d:%02d" $(( SONG_LENGTH / 60)) $(( SONG_LENGTH % 60)))
   echo
   echo "  $(yellow $SONG_ARTIST) - $(green $SONG_TITLE) ($time)"
   echo "  $(cyan \<$SONG_ALBUM_TITLE\> $SONG_PUBLIC_TIME)"
-  echo "  $SONG_RATING $(liked_symbol $SONG_LIKED)"
+  echo "  $(rating $SONG_RATING) $SONG_RATING $(liked_symbol $SONG_LIKED)"
 }
 
 notify_song_info() {
   notify-send -i $SONG_PICTURE_PATH \
-    "$SONG_TITLE" "$SONG_ARTIST《$SONG_ALBUM_TITLE》"
+    "$SONG_TITLE $(liked_symbol $SONG_LIKED)" \
+    "$SONG_ARTIST《$SONG_ALBUM_TITLE》\n$(rating $SONG_RATING) $SONG_RATING"
 }
 
 play_next() {
