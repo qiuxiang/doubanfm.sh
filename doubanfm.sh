@@ -1,19 +1,5 @@
 #!/usr/bin/env bash
 
-# param: key
-# return: value
-get_config() {
-  cat $PATH_CONFIG | jq -r .$1
-}
-
-# param: key
-# param: value
-set_config() {
-  # can't use pipeline, because input file can't as output file
-  CONFIG=$(cat $PATH_CONFIG | jq ".$1=\"$2\"")
-  echo $CONFIG > $PATH_CONFIG
-}
-
 PATH_BASE=$HOME/.doubanfm.sh
 PATH_COOKIES=$PATH_BASE/cookies.txt
 PATH_PLAYER_PID=$PATH_BASE/player.pid
@@ -29,20 +15,37 @@ DEFAULT_CONFIG='{
   "channel": 0
 }'
 
-test -d $PATH_BASE || mkdir $PATH_BASE
-test -d $PATH_ALBUM_COVER || mkdir $PATH_ALBUM_COVER
-test -f $PATH_PLAYER_PID && rm $PATH_PLAYER_PID
-test -f $PATH_CONFIG || echo $DEFAULT_CONFIG > $PATH_CONFIG
-test -f $PATH_PLAYLIST_INDEX || echo 0 > $PATH_PLAYLIST_INDEX
-
-PARAMS_APP_NAME=radio_desktop_win
-PARAMS_VERSION=100
-PARAMS_TYPE=n
-PARAMS_CHANNEL=$(get_config channel)
-PARAMS_KBPS=$(get_config kbps)
-
 STATE_PLAYING=0
 STATE_STOPED=1
+
+# param: key
+# return: value
+get_config() {
+  cat $PATH_CONFIG | jq -r .$1
+}
+
+# param: key
+# param: value
+set_config() {
+  # can't use pipeline, because input file can't as output file
+  local cont=$(cat $PATH_CONFIG | jq ".$1=\"$2\"")
+  echo $cont > $PATH_CONFIG
+}
+
+init_path() {
+  test -d $PATH_BASE || mkdir $PATH_BASE
+  test -d $PATH_ALBUM_COVER || mkdir $PATH_ALBUM_COVER
+  test -f $PATH_CONFIG || echo $DEFAULT_CONFIG > $PATH_CONFIG
+  test -f $PATH_PLAYLIST_INDEX || echo 0 > $PATH_PLAYLIST_INDEX
+}
+
+init_params() {
+  PARAMS_APP_NAME=radio_desktop_win
+  PARAMS_VERSION=100
+  PARAMS_TYPE=n
+  PARAMS_CHANNEL=$(get_config channel)
+  PARAMS_KBPS=$(get_config kbps)
+}
 
 # wrap color red
 red() {
@@ -104,7 +107,6 @@ echo_error() {
   echo $(red "Error: $1.") >&2
 }
 
-# assign SONG
 fetch_song_info() {
   local index=$(get_playlist_index)
   SONG_URL=$(get_song_info $index url)
@@ -121,6 +123,7 @@ fetch_song_info() {
   SONG_KBPS=$(get_song_info $index kbps)
   SONG_PICTURE_URL=$(get_song_info $index picture)
   SONG_PICTURE_PATH=$PATH_ALBUM_COVER/${SONG_PICTURE_URL##*/}
+  # save song picture
   test -f $SONG_PICTURE_PATH || $CURL $SONG_PICTURE_URL > $SONG_PICTURE_PATH
 }
 
@@ -132,7 +135,6 @@ load_user_info() {
   USER_EXPIRE=$(get_config user.expire)
 }
 
-# assign USER
 save_user_info() {
   set_config user.id $USER_ID
   set_config user.name $USER_NAME
@@ -146,12 +148,10 @@ build_params() {
   local params="kbps=$PARAMS_KBPS&channel=$PARAMS_CHANNEL"
   params+="&app_name=$PARAMS_APP_NAME&version=$PARAMS_VERSION"
   params+="&type=$PARAMS_TYPE&sid=$SONG_SID"
-  test -n $USER_ID && params+="&user_id=$USER_ID&token=$USER_TOKEN&expire=$USER_EXPIRE"
+  test $USER_ID != "null" && params+="&user_id=$USER_ID&token=$USER_TOKEN&expire=$USER_EXPIRE"
   echo $params
 }
 
-# assign PLAYLIST
-#
 # param: operation type
 update_playlist() {
   PARAMS_TYPE=$1
@@ -384,24 +384,29 @@ Options:
 EOF
 }
 
-while getopts "c:k:h" opt; do
-  case $opt in
-    c)
-      set_channel $OPTARG
-      ;;
-    k)
-      set_kbps $OPTARG
-      ;;
-    h)
-      print_help
-      exit
-      ;;
-  esac
-done
+read_opts() {
+  while getopts "c:k:h" opt; do
+    case $opt in
+      c)
+        set_channel $OPTARG
+        ;;
+      k)
+        set_kbps $OPTARG
+        ;;
+      h)
+        print_help
+        exit
+        ;;
+    esac
+  done
+}
 
+read_opts
 trap quit INT
 stty -echo 2> /dev/null
 hide_cursor
+init_path
+init_params
 load_user_info
 update_and_play n
 mainloop
