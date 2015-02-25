@@ -185,9 +185,11 @@ song_rate() {
   if [ $SONG_LIKED -eq 0 ]; then
     update_playlist r
     SONG_LIKED=1
+    printf "\n  $(green liked)\n"
   else
     update_playlist u
     SONG_LIKED=0
+    printf "\n  $(yellow unlike)\n"
   fi
 }
 
@@ -213,11 +215,11 @@ print_channels() {
 
 quit() {
   pkill -P $(get_player_pid)
-  clear
+  echo -e "\e[?25h" # show cursor
   exit
 }
 
-print_help() {
+print_commands() {
   cat << EOF
 
   p: play or pause
@@ -261,14 +263,22 @@ mainloop() {
         quit
         ;;
       h)
-        print_help
+        print_commands
         ;;
     esac
   done
 }
 
+while getopts "c:" opt; do
+  case $opt in
+     c)
+       PARAMS_CHANNEL=$OPTARG
+       set_config channel $OPTARG
+       ;;
+  esac
+done
+
 trap quit INT
-tput smcup 2> /dev/null
 stty -echo 2> /dev/null
 printf "\e[?25l" # hide cursor
 update_and_play n
