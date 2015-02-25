@@ -341,40 +341,17 @@ mainloop() {
   while true; do
     read -n 1 c
     case ${c:0:1} in
-      t)
-        print_song_info
-        notify_song_info
-        ;;
-      p)
-        pause
-        ;;
-      n)
-        song_skip
-        ;;
-      r)
-        song_rate
-        ;;
-      b)
-        song_remove
-        ;;
-      c)
-        print_channels
-        ;;
-      l)
-        print_playlist
-        ;;
-      i)
-        sign_in
-        ;;
-      o)
-        sign_out
-        ;;
-      q)
-        quit
-        ;;
-      h)
-        print_commands
-        ;;
+      t) print_song_info; notify_song_info ;;
+      p) pause ;;
+      n) song_skip ;;
+      r) song_rate ;;
+      b) song_remove ;;
+      c) print_channels ;;
+      l) print_playlist ;;
+      i) sign_in ;;
+      o) sign_out ;;
+      q) quit ;;
+      h) print_commands ;;
     esac
   done
 }
@@ -414,16 +391,9 @@ init_params
 
 while getopts "c:k:h" opt; do
   case $opt in
-    c)
-      set_channel $OPTARG
-      ;;
-    k)
-      set_kbps $OPTARG
-      ;;
-    h)
-      print_help
-      exit
-      ;;
+    c) set_channel $OPTARG ;;
+    k) set_kbps $OPTARG ;;
+    h) print_help; exit ;;
   esac
 done
 
