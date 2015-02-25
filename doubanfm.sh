@@ -21,15 +21,15 @@ DEFAULT_CONFIG='{
 # param: key
 # return: value
 get_config() {
-  cat $PATH_CONFIG | jq -r .$1
+  cat $PATH_CONFIG | jq -r .$1?
 }
 
 # param: key
 # param: value
 set_config() {
   # can't use pipeline, because input file can't as output file
-  local cont=$(cat $PATH_CONFIG | jq ".$1=\"$2\"")
-  echo $cont > $PATH_CONFIG
+  local config=$(cat $PATH_CONFIG | jq ".$1=$2")
+  echo $config > $PATH_CONFIG
 }
 
 init_path() {
@@ -136,15 +136,16 @@ load_user_info() {
 }
 
 save_user_info() {
+  set_config user {}
   set_config user.id $USER_ID
-  set_config user.name $USER_NAME
-  set_config user.email $USER_EMAIL
-  set_config user.token $USER_TOKEN
+  set_config user.name \"$USER_NAME\"
+  set_config user.email \"$USER_EMAIL\"
+  set_config user.token \"$USER_TOKEN\"
   set_config user.expire $USER_EXPIRE
 }
 
 logged() {
-  test $USER_ID != "null"
+  test -n "$USER_ID" && test $USER_ID != "null" && test $USER_ID != "[]"
 }
 
 # return: params string
@@ -230,7 +231,7 @@ pause() {
     $STATE_STOPED)
       pkill -18 -P $(get_player_pid)
       PLAYER_STATE=$STATE_PLAYING
-      printf "\n  $(cyan Playing)\n"
+      printf "\n  $(green Playing)\n"
       ;;
   esac
 }
@@ -285,27 +286,27 @@ print_commands() {
   [$(cyan n)] next song
   [$(cyan b)] remove this song
   [$(cyan r)] like or unlike
-  [$(cyan i)] display song info
+  [$(cyan t)] display song info
   [$(cyan c)] print channels
   [$(cyan l)] print playlist
-  [$(cyan s)] login
-  [$(cyan o)] logout
+  [$(cyan i)] sign in
+  [$(cyan o)] sign out
   [$(cyan q)] quit
 EOF
 }
 
-login() {
+sign_in() {
   echo
   if logged; then
-    echo "You already Login, press [o] to logout."
+    printf "  You already Login, press [o] to sign out.\n"
   else
     show_cursor
     enable_echo
-    read -p "Email: " email
+    read -p "  Email: " email
 
     disable_echo
     hide_cursor
-    read -p "Password: " password
+    read -p "  Password: " password
 
     local data="email=$email&password=$password&"
     data+="app_name=$PARAMS_APP_NAME&version=$PARAMS_VERSION"
@@ -318,18 +319,29 @@ login() {
       USER_TOKEN=$(echo $result | jq -r .token)
       USER_EXPIRE=$(echo $result | jq -r .expire)
       save_user_info
-      echo $(green "Login success: $(yellow $USER_NAME) <$USER_EMAIL>\n")
+      printf "\n  $(cyan $USER_NAME \<$USER_EMAIL\>)\n"
     else
-      echo $(red "Login failed: $message\n")
+      printf "\n  $(red $message)\n"
     fi
   fi
+}
+
+sign_out() {
+  USER_NAME=null
+  USER_EMAIL=null
+  USER_ID=null
+  USER_TOKEN=null
+  USER_EXPIRE=null
+  set_config user {}
+  printf "\n  Sign out\n"
+  test $PARAMS_CHANNEL = "-3" && set_channel 0 && update_and_play
 }
 
 mainloop() {
   while true; do
     read -n 1 c
     case ${c:0:1} in
-      i)
+      t)
         print_song_info
         notify_song_info
         ;;
@@ -351,8 +363,11 @@ mainloop() {
       l)
         print_playlist
         ;;
-      s)
-        login
+      i)
+        sign_in
+        ;;
+      o)
+        sign_out
         ;;
       q)
         quit
@@ -394,29 +409,27 @@ Options:
 EOF
 }
 
-read_opts() {
-  while getopts "c:k:h" opt; do
-    case $opt in
-      c)
-        set_channel $OPTARG
-        ;;
-      k)
-        set_kbps $OPTARG
-        ;;
-      h)
-        print_help
-        exit
-        ;;
-    esac
-  done
-}
+init_path
+init_params
 
-read_opts
+while getopts "c:k:h" opt; do
+  case $opt in
+    c)
+      set_channel $OPTARG
+      ;;
+    k)
+      set_kbps $OPTARG
+      ;;
+    h)
+      print_help
+      exit
+      ;;
+  esac
+done
+
 trap quit INT
 stty -echo 2> /dev/null
 hide_cursor
-init_path
-init_params
 load_user_info
 update_and_play n
 mainloop
