@@ -7,6 +7,9 @@ PATH_ALBUM_COVER=$PATH_BASE/albumcover
 PATH_CONFIG=$PATH_BASE/config.json
 PATH_PLAYLIST_INDEX=$PATH_BASE/.index
 
+STATE_PLAYING=0
+STATE_STOPED=1
+
 BASE_URL=http://douban.fm/j/app
 CURL="curl -s -c $PATH_COOKIES -b $PATH_COOKIES"
 PLAYER=mpg123
@@ -14,9 +17,6 @@ DEFAULT_CONFIG='{
   "kbps": 192,
   "channel": 0
 }'
-
-STATE_PLAYING=0
-STATE_STOPED=1
 
 # param: key
 # return: value
@@ -143,12 +143,16 @@ save_user_info() {
   set_config user.expire $USER_EXPIRE
 }
 
+logged() {
+  test $USER_ID != "null"
+}
+
 # return: params string
 build_params() {
   local params="kbps=$PARAMS_KBPS&channel=$PARAMS_CHANNEL"
   params+="&app_name=$PARAMS_APP_NAME&version=$PARAMS_VERSION"
   params+="&type=$PARAMS_TYPE&sid=$SONG_SID"
-  test $USER_ID != "null" && params+="&user_id=$USER_ID&token=$USER_TOKEN&expire=$USER_EXPIRE"
+  logged && params+="&user_id=$USER_ID&token=$USER_TOKEN&expire=$USER_EXPIRE"
   echo $params
 }
 
@@ -290,28 +294,32 @@ EOF
 
 login() {
   echo
-  show_cursor
-  enable_echo
-  read -p "Email: " email
-
-  disable_echo
-  hide_cursor
-  read -p "Password: " password
-
-  local data="email=$email&password=$password&"
-  data+="app_name=$PARAMS_APP_NAME&version=$PARAMS_VERSION"
-  local result=$($CURL -d $data http://www.douban.com/j/app/login)
-  local message=$(echo $result | jq -r .err)
-  if [ $message = "ok" ]; then
-    USER_NAME=$(echo $result | jq -r .user_name)
-    USER_EMAIL=$(echo $result | jq -r .email)
-    USER_ID=$(echo $result | jq -r .user_id)
-    USER_TOKEN=$(echo $result | jq -r .token)
-    USER_EXPIRE=$(echo $result | jq -r .expire)
-    save_user_info
-    echo $(green "Login success: $(yellow $USER_NAME) <$USER_EMAIL>\n")
+  if logged; then
+    echo "You already Login, press [o] to logout."
   else
-    echo $(red "Login failed: $message\n")
+    show_cursor
+    enable_echo
+    read -p "Email: " email
+
+    disable_echo
+    hide_cursor
+    read -p "Password: " password
+
+    local data="email=$email&password=$password&"
+    data+="app_name=$PARAMS_APP_NAME&version=$PARAMS_VERSION"
+    local result=$($CURL -d $data http://www.douban.com/j/app/login)
+    local message=$(echo $result | jq -r .err)
+    if [ $message = "ok" ]; then
+      USER_NAME=$(echo $result | jq -r .user_name)
+      USER_EMAIL=$(echo $result | jq -r .email)
+      USER_ID=$(echo $result | jq -r .user_id)
+      USER_TOKEN=$(echo $result | jq -r .token)
+      USER_EXPIRE=$(echo $result | jq -r .expire)
+      save_user_info
+      echo $(green "Login success: $(yellow $USER_NAME) <$USER_EMAIL>\n")
+    else
+      echo $(red "Login failed: $message\n")
+    fi
   fi
 }
 
