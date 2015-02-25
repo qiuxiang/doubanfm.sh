@@ -33,10 +33,10 @@ set_config() {
 }
 
 init_path() {
-  test -d $PATH_BASE || mkdir $PATH_BASE
-  test -d $PATH_ALBUM_COVER || mkdir $PATH_ALBUM_COVER
-  test -f $PATH_CONFIG || echo $DEFAULT_CONFIG > $PATH_CONFIG
-  test -f $PATH_PLAYLIST_INDEX || echo 0 > $PATH_PLAYLIST_INDEX
+  [ -d $PATH_BASE ] || mkdir $PATH_BASE
+  [ -d $PATH_ALBUM_COVER ] || mkdir $PATH_ALBUM_COVER
+  [ -f $PATH_CONFIG ] || echo $DEFAULT_CONFIG > $PATH_CONFIG
+  [ -f $PATH_PLAYLIST_INDEX ] || echo 0 > $PATH_PLAYLIST_INDEX
 }
 
 init_params() {
@@ -124,7 +124,7 @@ fetch_song_info() {
   SONG_PICTURE_URL=$(get_song_info $index picture)
   SONG_PICTURE_PATH=$PATH_ALBUM_COVER/${SONG_PICTURE_URL##*/}
   # save song picture
-  test -f $SONG_PICTURE_PATH || $CURL $SONG_PICTURE_URL > $SONG_PICTURE_PATH
+  [ -f $SONG_PICTURE_PATH ] || $CURL $SONG_PICTURE_URL > $SONG_PICTURE_PATH
 }
 
 load_user_info() {
@@ -145,7 +145,7 @@ save_user_info() {
 }
 
 logged() {
-  test -n "$USER_ID" && test $USER_ID != "null" && test $USER_ID != "[]"
+  [ -n "$USER_ID" ] && [ $USER_ID != "null" ] && [ $USER_ID != "[]" ]
 }
 
 # return: params string
@@ -162,7 +162,7 @@ update_playlist() {
   PARAMS_TYPE=$1
   PLAYLIST=$($CURL $BASE_URL/radio/people?$(build_params))
   PLAYLIST_LENGTH=$(echo $PLAYLIST | jq '.song | length')
-  test $PLAYLIST_LENGTH -eq 0 && echo_error "Playlist is empty" && exit 1
+  [ $PLAYLIST_LENGTH = 0 ] && echo_error "Playlist is empty" && exit 1
   set_playlist_index 0
 }
 
@@ -191,7 +191,7 @@ notify_song_info() {
 
 play_next() {
   local index=$(( $(get_playlist_index) + 1))
-  if [ $PLAYLIST_LENGTH -eq $index ]; then
+  if [ $PLAYLIST_LENGTH = $index ]; then
     update_playlist p
   else
     set_playlist_index $index
@@ -209,7 +209,7 @@ play() {
   fetch_song_info
   print_song_info
   notify_song_info
-  test -f $PATH_PLAYER_PID && pkill -P $(get_player_pid)
+  [ -f $PATH_PLAYER_PID ] && pkill -P $(get_player_pid)
   $PLAYER $SONG_URL &> /dev/null && play_next &
   echo $! > $PATH_PLAYER_PID
   PLAYER_STATE=$STATE_PLAYING
@@ -241,7 +241,7 @@ song_skip() {
 }
 
 song_rate() {
-  if [ $SONG_LIKED -eq 0 ]; then
+  if [ $SONG_LIKED = 0 ]; then
     update_playlist r
     SONG_LIKED=1
     printf "\n  $(green liked)\n"
@@ -260,7 +260,7 @@ print_playlist() {
   local current_index=$(get_playlist_index)
   echo
   for (( i = 0; i < PLAYLIST_LENGTH; i++ )) do
-    if [ $i -eq $current_index ]; then
+    if [ $i = $current_index ]; then
       printf "♪ $(yellow $(get_song_info $i artist)) - $(green $(get_song_info $i title))\n"
     else
       printf "  $(yellow $(get_song_info $i artist)) - $(green $(get_song_info $i title))\n"
@@ -334,7 +334,7 @@ sign_out() {
   USER_EXPIRE=null
   set_config user {}
   printf "\n  Sign out\n"
-  test $PARAMS_CHANNEL = "-3" && set_channel 0 && update_and_play
+  [ $PARAMS_CHANNEL = -3 ] && set_channel 0 && update_and_play
 }
 
 mainloop() {
@@ -356,7 +356,6 @@ mainloop() {
   done
 }
 
-# param: kbps (64, 128, 192)
 set_kbps() {
   if [[ $1 =~ 64|128|192 ]]; then
     PARAMS_KBPS=$1
