@@ -186,7 +186,7 @@ liked_symbol() {
 }
 
 print_song_info() {
-  time=$(printf "%d:%02d" $(( SONG_LENGTH / 60)) $(( SONG_LENGTH % 60)))
+  local time=$(printf "%d:%02d" $(( SONG_LENGTH / 60)) $(( SONG_LENGTH % 60)))
   echo
   echo "  $(green $SONG_ARTIST) - $(yellow $SONG_TITLE) ($time)"
   echo "  $(cyan \<$SONG_ALBUM_TITLE\> $SONG_PUBLIC_TIME)"
