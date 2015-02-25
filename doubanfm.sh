@@ -9,7 +9,9 @@ get_config() {
 # param: key
 # param: value
 set_config() {
-  cat $PATH_CONFIG | jq ".$1=$2" > $PATH_CONFIG
+  # can't use pipeline, because input file can't as output file
+  CONFIG=`cat $PATH_CONFIG | jq ".$1=$2"`
+  echo $CONFIG > $PATH_CONFIG
 }
 
 PATH_BASE=$HOME/.doubanfm.sh
@@ -110,7 +112,7 @@ print_song_info() {
   echo "   album: `cyan $SONG_ALBUM_TITLE`"
   echo "    year: `cyan $SONG_PUBLIC_TIME`"
   echo "  rating: `cyan $SONG_RATING`"
-  printf "    time: `cyan %d:%02d`\n\n" $(( SONG_LENGTH / 60)) $(( SONG_LENGTH / 60))
+  printf "    time: `cyan %d:%02d`\n\n" $(( SONG_LENGTH / 60)) $(( SONG_LENGTH % 60))
 }
 
 notify_song_info() {
@@ -137,7 +139,7 @@ play() {
   print_song_info
   notify_song_info
   test -f $PATH_PLAYER_PID && pkill -P `get_player_pid`
-  $PLAYER $SONG_URL &> /dev/null && echo && play_next &
+  $PLAYER $SONG_URL &> /dev/null && play_next &
   echo $! > $PATH_PLAYER_PID
   PLAYER_STATE=$STATE_PLAYING
 }
@@ -153,12 +155,12 @@ pause() {
     $STATE_PLAYING)
       pkill -19 -P `get_player_pid`
       PLAYER_STATE=$STATE_STOPED
-      echo `yellow paused`
+      echo "  "`yellow paused`
       ;;
     $STATE_STOPED)
       pkill -18 -P `get_player_pid`
       PLAYER_STATE=$STATE_PLAYING
-      echo `cyan playing`
+      echo "  "`cyan playing`
       ;;
   esac
 }
