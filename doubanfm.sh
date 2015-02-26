@@ -220,12 +220,12 @@ print_song_info() {
   echo
   echo "  $(yellow $(song artist) - $(green $(song title))) ($time)"
   echo "  $(cyan \<$(song albumtitle)\> $(song public_time))"
-  echo "  $(stars $(song rating_avg)) $(heart $(song liked))"
+  echo "  $(stars $(song rating_avg)) $(heart $(song like))"
 }
 
 notify_song_info() {
   notify-send -i $(song picture_path) \
-    "$(song title) $(heart $(song liked))" \
+    "$(song title) $(heart $(song like))" \
     "$(song artist)《$(song albumtitle)》\n$(stars $(song rating_avg))"
 }
 
