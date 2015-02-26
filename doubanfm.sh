@@ -5,7 +5,8 @@ PATH_COOKIES=$PATH_BASE/cookies.txt
 PATH_PLAYER_PID=$PATH_BASE/player.pid
 PATH_ALBUM_COVER=$PATH_BASE/albumcover
 PATH_CONFIG=$PATH_BASE/config.json
-PATH_PLAYLIST_INDEX=$PATH_BASE/.index
+PATH_PLAYLIST=$PATH_BASE/playlist.json
+PATH_PLAYLIST_INDEX=$PATH_BASE/index
 
 STATE_PLAYING=0
 STATE_STOPED=1
@@ -107,26 +108,6 @@ echo_error() {
   echo $(red "Error: $1.") >&2
 }
 
-fetch_song_info() {
-  local index=$(get_playlist_index)
-  SONG_URL=$(get_song_info $index url)
-  SONG_SID=$(get_song_info $index sid)
-  SONG_ALBUM_URL=http://music.douban.com$(get_song_info $index album)
-  SONG_ALBUM_TITLE=$(get_song_info $index albumtitle)
-  SONG_TITLE=$(get_song_info $index title)
-  SONG_RATING=$(get_song_info $index rating_avg)
-  SONG_ARTIST=$(get_song_info $index artist)
-  SONG_LIKED=$(get_song_info $index like)
-  SONG_PUBLIC_TIME=$(get_song_info $index public_time)
-  SONG_COMPANY=$(get_song_info $index company)
-  SONG_LENGTH=$(get_song_info $index length)
-  SONG_KBPS=$(get_song_info $index kbps)
-  SONG_PICTURE_URL=$(get_song_info $index picture)
-  SONG_PICTURE_PATH=$PATH_ALBUM_COVER/${SONG_PICTURE_URL##*/}
-  # save song picture
-  [ -f $SONG_PICTURE_PATH ] || $CURL $SONG_PICTURE_URL > $SONG_PICTURE_PATH
-}
-
 load_user_info() {
   USER_NAME=$(get_config user.name)
   USER_EMAIL=$(get_config user.email)
@@ -148,41 +129,68 @@ logged() {
   [ -n "$USER_ID" ] && [ $USER_ID != "null" ] && [ $USER_ID != "[]" ]
 }
 
+# param: playlist index
+# param: key
+# return: value
+get_song_info() {
+  load_playlist | jq -r .[$1].$2
+}
+
+# get song info
+#
+# param: key
+# param: playlist index, default is current
+# return: value
+song() {
+  [ -z $2 ] && local i=$(get_playlist_index)
+  case $1 in
+    album_url)
+      echo http://music.douban.com$(get_song_info $i album) ;;
+    picture_path)
+      local picture_url=$(get_song_info $i picture_url)
+      local picture_path=$PATH_ALBUM_COVER/${picture_url##*/}
+      [ -f $picture_path ] || $CURL $picture_url > $picture_path
+      echo $picture_path ;;
+    *)
+      get_song_info $i $1 ;;
+  esac
+}
+
 # return: params string
 build_params() {
   local params="kbps=$PARAMS_KBPS&channel=$PARAMS_CHANNEL"
   params+="&app_name=$PARAMS_APP_NAME&version=$PARAMS_VERSION"
-  params+="&type=$PARAMS_TYPE&sid=$SONG_SID"
+  params+="&type=$PARAMS_TYPE&sid=$(song sid)"
   logged && params+="&user_id=$USER_ID&token=$USER_TOKEN&expire=$USER_EXPIRE"
   echo $params
 }
 
 # param: operation type
-get_playlist() {
+# return: playlist json
+request_playlist() {
   PARAMS_TYPE=$1
-  $CURL $BASE_URL/radio/people?$(build_params)
+  $CURL $BASE_URL/radio/people?$(build_params) | jq .song
+}
+
+# return: playlist json
+load_playlist() {
+  cat $PATH_PLAYLIST
+}
+
+get_playlist_length() {
+  load_playlist | jq length
 }
 
 # param: operation type
 update_playlist() {
-  PLAYLIST=$(get_playlist $1)
-  PLAYLIST_LENGTH=$(echo $PLAYLIST | jq '.song | length')
-  [ $PLAYLIST_LENGTH = 0 ] && echo_error "Playlist is empty" && exit 1
+  request_playlist $1 > $PATH_PLAYLIST
+  [ $(get_playlist_length) = 0 ] && echo_error "Playlist is empty" && quit
   set_playlist_index 0
-}
-
-# get song info from PLAYLIST
-#
-# param: playlist index
-# param: key
-# return: value
-get_song_info() {
-  echo $PLAYLIST | jq -r .song[$1].$2
 }
 
 # param: 0 or 1
 # return: ♡ or ♥
-liked_symbol() {
+heart() {
   if [ $1 = 1 ]; then
     printf "♥"
   else
@@ -190,9 +198,9 @@ liked_symbol() {
   fi
 }
 
-# param: [0, 5]
-# return: ★★★☆☆
-rating() {
+# param: rating [0, 5]
+# return: ★★★☆☆ 3.2
+stars() {
   local n=$(echo $1 | awk '{print int($1+0.5)}')
   local s=""
   for (( i = 0; i < 5; i++ )) do
@@ -202,26 +210,27 @@ rating() {
       s+="☆"
     fi
   done
-  echo $s
+  echo "$s $1"
 }
 
 print_song_info() {
-  local time=$(printf "%d:%02d" $(( SONG_LENGTH / 60)) $(( SONG_LENGTH % 60)))
+  local length=$(song length)
+  local time=$(printf "%d:%02d" $(( length / 60)) $(( length % 60)))
   echo
-  echo "  $(yellow $SONG_ARTIST) - $(green $SONG_TITLE) ($time)"
-  echo "  $(cyan \<$SONG_ALBUM_TITLE\> $SONG_PUBLIC_TIME)"
-  echo "  $(rating $SONG_RATING) $SONG_RATING $(liked_symbol $SONG_LIKED)"
+  echo "  $(yellow $(song artist) - $(green $(song title))) ($time)"
+  echo "  $(cyan \<$(song albumtitle)\> $(song public_time))"
+  echo "  $(stars $(song rating_avg)) $(heart $(song liked))"
 }
 
 notify_song_info() {
-  notify-send -i $SONG_PICTURE_PATH \
-    "$SONG_TITLE $(liked_symbol $SONG_LIKED)" \
-    "$SONG_ARTIST《$SONG_ALBUM_TITLE》\n$(rating $SONG_RATING) $SONG_RATING"
+  notify-send -i $(song picture_path) \
+    "$(song title) $(heart $(song liked))" \
+    "$(song artist)《$(song albumtitle)》\n$(stars $(song rating_avg))"
 }
 
 play_next() {
   local index=$(( $(get_playlist_index) + 1))
-  if [ $PLAYLIST_LENGTH = $index ]; then
+  if [ $(get_playlist_length) = $index ]; then
     update_playlist p
   else
     set_playlist_index $index
@@ -240,7 +249,7 @@ play() {
   print_song_info
   notify_song_info
   [ -f $PATH_PLAYER_PID ] && pkill -P $(get_player_pid)
-  $PLAYER $SONG_URL &> /dev/null && get_playlist e && play_next &
+  $PLAYER $(song url) &> /dev/null && request_playlist e > /dev/null && play_next &
   echo $! > $PATH_PLAYER_PID
   PLAYER_STATE=$STATE_PLAYING
 }
@@ -271,13 +280,13 @@ song_skip() {
 }
 
 song_rate() {
-  if [ $SONG_LIKED = 0 ]; then
+  if [ $(song liked) = 0 ]; then
     update_playlist r
-    SONG_LIKED=1
+    # todo: set song liked = 1
     printf "\n  $(green liked)\n"
   else
     update_playlist u
-    SONG_LIKED=0
+    # todo: set song liked = 0
     printf "\n  $(yellow unlike)\n"
   fi
 }
@@ -288,14 +297,13 @@ song_remove() {
 
 print_playlist() {
   local current_index=$(get_playlist_index)
+  local playlist_length=$(get_playlist_length)
   echo
-  for (( i = 0; i < PLAYLIST_LENGTH; i++ )) do
-    local artist=$(yellow $(get_song_info $i artist))
-    local title=$(green $(get_song_info $i title))
+  for (( i = 0; i < playlist_length; i++ )) do
     if [ $i = $current_index ]; then
-      echo "♪ $artist - $title"
+      echo "♪ $(yellow $(song artist $i)) - $(green $(song title $i))"
     else
-      echo "  $artist - $title"
+      echo "  $(yellow $(song artist $i)) - $(green $(song title $i))"
     fi
   done
 }
