@@ -281,14 +281,14 @@ song_skip() {
 }
 
 song_rate() {
-  if [ $(song liked) = 0 ]; then
+  if [ $(song like) = 0 ]; then
     update_playlist r
-    # todo: set song liked = 1
-    printf "\n  $(green liked)\n"
+    # todo: set song like = 1
+    printf "\n  $(green Liked)\n"
   else
     update_playlist u
-    # todo: set song liked = 0
-    printf "\n  $(yellow unlike)\n"
+    # todo: set song like = 0
+    printf "\n  $(yellow Unlike)\n"
   fi
 }
 
