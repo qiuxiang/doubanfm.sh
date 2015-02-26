@@ -158,9 +158,14 @@ build_params() {
 }
 
 # param: operation type
-update_playlist() {
+get_playlist() {
   PARAMS_TYPE=$1
-  PLAYLIST=$($CURL $BASE_URL/radio/people?$(build_params))
+  $CURL $BASE_URL/radio/people?$(build_params)
+}
+
+# param: operation type
+update_playlist() {
+  PLAYLIST=$(get_playlist $1)
   PLAYLIST_LENGTH=$(echo $PLAYLIST | jq '.song | length')
   [ $PLAYLIST_LENGTH = 0 ] && echo_error "Playlist is empty" && exit 1
   set_playlist_index 0
@@ -235,7 +240,7 @@ play() {
   print_song_info
   notify_song_info
   [ -f $PATH_PLAYER_PID ] && pkill -P $(get_player_pid)
-  $PLAYER $SONG_URL &> /dev/null && play_next &
+  $PLAYER $SONG_URL &> /dev/null && get_playlist e && play_next &
   echo $! > $PATH_PLAYER_PID
   PLAYER_STATE=$STATE_PLAYING
 }
