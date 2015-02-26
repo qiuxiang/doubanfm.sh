@@ -183,7 +183,8 @@ get_playlist_length() {
 
 # param: operation type
 update_playlist() {
-  request_playlist $1 > $PATH_PLAYLIST
+  local playlist=$(request_playlist $1)
+  echo $playlist > $PATH_PLAYLIST
   [ $(get_playlist_length) = 0 ] && echo_error "Playlist is empty" && quit
   set_playlist_index 0
 }
