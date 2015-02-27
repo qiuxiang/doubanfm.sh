@@ -37,6 +37,7 @@ init_path() {
   [ -d $PATH_BASE ] || mkdir $PATH_BASE
   [ -d $PATH_ALBUM_COVER ] || mkdir $PATH_ALBUM_COVER
   [ -f $PATH_CONFIG ] || echo $DEFAULT_CONFIG > $PATH_CONFIG
+  [ -f $PATH_PLAYLIST ] || echo [] > $PATH_PLAYLIST
   [ -f $PATH_PLAYLIST_INDEX ] || echo 0 > $PATH_PLAYLIST_INDEX
 }
 
