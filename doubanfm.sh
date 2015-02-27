@@ -138,7 +138,7 @@ song() {
     album_url)
       echo http://music.douban.com$(get_song_info $i album) ;;
     picture_path)
-      local picture_url=$(get_song_info $i picture_url)
+      local picture_url=$(get_song_info $i picture)
       local picture_path=$PATH_ALBUM_COVER/${picture_url##*/}
       [ -f $picture_path ] || $CURL $picture_url > $picture_path
       echo $picture_path ;;
