@@ -14,10 +14,7 @@ STATE_STOPED=1
 BASE_URL=http://douban.fm/j/app
 CURL="curl -s -c $PATH_COOKIES -b $PATH_COOKIES"
 PLAYER=mpg123
-DEFAULT_CONFIG='{
-  "kbps": 192,
-  "channel": 0
-}'
+DEFAULT_CONFIG='{ "kbps": 192, "channel": 0 }'
 
 # param: key
 # return: value
@@ -134,7 +131,7 @@ logged() {
 # param: key
 # return: value
 get_song_info() {
-  load_playlist | jq -r .[$1].$2
+  jq -r .[$1].$2 < $PATH_PLAYLIST
 }
 
 # get song info
@@ -173,13 +170,8 @@ request_playlist() {
   $CURL $BASE_URL/radio/people?$(build_params) | jq .song
 }
 
-# return: playlist json
-load_playlist() {
-  cat $PATH_PLAYLIST
-}
-
 get_playlist_length() {
-  load_playlist | jq length
+  jq length < $PATH_PLAYLIST
 }
 
 # param: operation type
