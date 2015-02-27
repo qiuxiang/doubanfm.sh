@@ -22,14 +22,14 @@ DEFAULT_CONFIG='{
 # param: key
 # return: value
 get_config() {
-  cat $PATH_CONFIG | jq -r .$1?
+  jq -r .$1? < $PATH_CONFIG
 }
 
 # param: key
 # param: value
 set_config() {
   # can't use pipeline, because input file can't as output file
-  local config=$(cat $PATH_CONFIG | jq ".$1=$2")
+  local config=$(jq ".$1=$2" < $PATH_CONFIG)
   echo $config > $PATH_CONFIG
 }
 
@@ -106,7 +106,7 @@ enable_echo() {
 }
 
 echo_error() {
-  echo $(red "Error: $1.") >&2
+  red "Error: $1." >&2
 }
 
 load_user_info() {
