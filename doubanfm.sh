@@ -16,18 +16,13 @@ CURL="curl -s -c $PATH_COOKIES -b $PATH_COOKIES"
 PLAYER=mpg123
 DEFAULT_CONFIG='{ "kbps": 192, "channel": 0 }'
 
-# param: key
-# return: value
-get_config() {
-  jq -r .$1? < $PATH_CONFIG
-}
-
-# param: key
-# param: value
-set_config() {
-  # can't use pipeline, because input file can't as output file
-  local config=$(jq ".$1=$2" < $PATH_CONFIG)
-  echo $config > $PATH_CONFIG
+config() {
+  if [ -z $2 ]; then
+    jq -r .$1? < $PATH_CONFIG
+  else
+    local config=$(jq ".$1=$2" < $PATH_CONFIG)
+    echo $config > $PATH_CONFIG
+  fi
 }
 
 init_path() {
@@ -42,8 +37,8 @@ init_params() {
   PARAMS_APP_NAME=radio_desktop_win
   PARAMS_VERSION=100
   PARAMS_TYPE=n
-  PARAMS_CHANNEL=$(get_config channel)
-  PARAMS_KBPS=$(get_config kbps)
+  PARAMS_CHANNEL=$(config channel)
+  PARAMS_KBPS=$(config kbps)
 }
 
 # wrap color red
@@ -76,14 +71,12 @@ cyan() {
   echo -e "\033[0;36m$@\033[0m"
 }
 
-# return: playlist index
-get_playlist_index() {
-  cat $PATH_PLAYLIST_INDEX
-}
-
-# param: playlist index
-set_playlist_index() {
-  echo $1 > $PATH_PLAYLIST_INDEX
+playlist_index() {
+  if [ -z $1 ]; then
+    cat $PATH_PLAYLIST_INDEX
+  else
+    echo $1 > $PATH_PLAYLIST_INDEX
+  fi
 }
 
 hide_cursor() {
@@ -107,20 +100,20 @@ echo_error() {
 }
 
 load_user_info() {
-  USER_NAME=$(get_config user.name)
-  USER_EMAIL=$(get_config user.email)
-  USER_ID=$(get_config user.id)
-  USER_TOKEN=$(get_config user.token)
-  USER_EXPIRE=$(get_config user.expire)
+  USER_NAME=$(config user.name)
+  USER_EMAIL=$(config user.email)
+  USER_ID=$(config user.id)
+  USER_TOKEN=$(config user.token)
+  USER_EXPIRE=$(config user.expire)
 }
 
 save_user_info() {
-  set_config user {}
-  set_config user.id $USER_ID
-  set_config user.name \"$USER_NAME\"
-  set_config user.email \"$USER_EMAIL\"
-  set_config user.token \"$USER_TOKEN\"
-  set_config user.expire $USER_EXPIRE
+  config user {}
+  config user.id $USER_ID
+  config user.name \"$USER_NAME\"
+  config user.email \"$USER_EMAIL\"
+  config user.token \"$USER_TOKEN\"
+  config user.expire $USER_EXPIRE
 }
 
 logged() {
@@ -140,7 +133,7 @@ get_song_info() {
 # param: playlist index, default is current
 # return: value
 song() {
-  [ -z $2 ] && local i=$(get_playlist_index)
+  [ -z $2 ] && local i=$(playlist_index)
   case $1 in
     album_url)
       echo http://music.douban.com$(get_song_info $i album) ;;
@@ -179,7 +172,7 @@ update_playlist() {
   local playlist=$(request_playlist $1)
   echo $playlist > $PATH_PLAYLIST
   [ $(get_playlist_length) = 0 ] && echo_error "Playlist is empty" && quit
-  set_playlist_index 0
+  playlist_index 0
 }
 
 # param: 0 or 1
@@ -223,11 +216,11 @@ notify_song_info() {
 }
 
 play_next() {
-  local index=$(( $(get_playlist_index) + 1))
+  local index=$(( $(playlist_index) + 1))
   if [ $(get_playlist_length) = $index ]; then
     update_playlist p
   else
-    set_playlist_index $index
+    playlist_index $index
   fi
 
   play 2> /dev/null
@@ -290,7 +283,7 @@ song_remove() {
 }
 
 print_playlist() {
-  local current_index=$(get_playlist_index)
+  local current_index=$(playlist_index)
   local playlist_length=$(get_playlist_length)
   echo
   for (( i = 0; i < playlist_length; i++ )) do
@@ -367,7 +360,7 @@ sign_out() {
   USER_ID=null
   USER_TOKEN=null
   USER_EXPIRE=null
-  set_config user {}
+  config user {}
   printf "\n  Sign out\n"
   [ $PARAMS_CHANNEL = -3 ] && set_channel 0 && update_and_play
 }
@@ -395,7 +388,7 @@ mainloop() {
 set_kbps() {
   if [[ $1 =~ 64|128|192 ]]; then
     PARAMS_KBPS=$1
-    set_config kbps $1
+    config kbps $1
   else
     echo_error "Available kbps values is 64, 128, 192"
   fi
@@ -405,7 +398,7 @@ set_kbps() {
 set_channel() {
   if [[ $1 =~ ^-?[0-9]+$ ]]; then
     PARAMS_CHANNEL=$1
-    set_config channel $1
+    config channel $1
   else
     echo_error "Channel id must be a number"
   fi
@@ -433,7 +426,7 @@ while getopts "c:k:h" opt; do
 done
 
 trap quit INT
-stty -echo 2> /dev/null
+disable_echo
 hide_cursor
 load_user_info
 update_and_play n
