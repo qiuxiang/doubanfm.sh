@@ -11,14 +11,16 @@ PATH_PLAYLIST_INDEX=$PATH_BASE/index
 STATE_PLAYING=0
 STATE_STOPED=1
 
-BASE_URL=http://douban.fm/j/app
 CURL="curl -s -c $PATH_COOKIES -b $PATH_COOKIES"
 PLAYER=mpg123
 DEFAULT_CONFIG='{ "kbps": 192, "channel": 0 }'
 
+#
+# get or set config
+#
 config() {
   if [ -z $2 ]; then
-    jq -r .$1? < $PATH_CONFIG
+    jq -r ".$1" < $PATH_CONFIG
   else
     local config=$(jq ".$1=$2" < $PATH_CONFIG)
     echo $config > $PATH_CONFIG
@@ -41,36 +43,33 @@ init_params() {
   PARAMS_KBPS=$(config kbps)
 }
 
-# wrap color red
 red() {
   echo -e "\033[0;31m$@\033[0m"
 }
 
-# wrap color green
 green() {
   echo -e "\033[0;32m$@\033[0m"
 }
 
-# wrap color yellow
 yellow() {
   echo -e "\033[0;33m$@\033[0m"
 }
 
-# wrap color blue
 blue() {
   echo -e "\033[0;34m$@\033[0m"
 }
 
-# wrap color magenta
 magenta() {
   echo -e "\033[0;35m$@\033[0m"
 }
 
-# wrap color cyan
 cyan() {
   echo -e "\033[0;36m$@\033[0m"
 }
 
+#
+# get or set playlist index
+#
 playlist_index() {
   if [ -z $1 ]; then
     cat $PATH_PLAYLIST_INDEX
@@ -120,18 +119,24 @@ logged() {
   [ -n "$USER_ID" ] && [ $USER_ID != "null" ] && [ $USER_ID != "[]" ]
 }
 
+#
+# low level get song info
+#
 # param: playlist index
 # param: key
 # return: value
+#
 get_song_info() {
   jq -r .[$1].$2 < $PATH_PLAYLIST
 }
 
+#
 # get song info
 #
 # param: key
 # param: playlist index, default is current
 # return: value
+#
 song() {
   [ -z $2 ] && local i=$(playlist_index)
   case $1 in
@@ -147,7 +152,9 @@ song() {
   esac
 }
 
+#
 # return: params string
+#
 build_params() {
   local params="kbps=$PARAMS_KBPS&channel=$PARAMS_CHANNEL"
   params+="&app_name=$PARAMS_APP_NAME&version=$PARAMS_VERSION"
@@ -156,11 +163,13 @@ build_params() {
   echo $params
 }
 
+#
 # param: operation type
 # return: playlist json
+#
 request_playlist() {
   PARAMS_TYPE=$1
-  $CURL $BASE_URL/radio/people?$(build_params) | jq .song
+  $CURL http://douban.fm/j/app/radio/people?$(build_params) | jq .song
 }
 
 get_playlist_length() {
@@ -175,8 +184,10 @@ update_playlist() {
   playlist_index 0
 }
 
+#
 # param: 0 or 1
 # return: ♡ or ♥
+#
 heart() {
   if [ $1 = 1 ]; then
     printf "♥"
@@ -185,8 +196,10 @@ heart() {
   fi
 }
 
+#
 # param: rating [0, 5]
 # return: ★★★☆☆ 3.2
+#
 stars() {
   local n=$(echo $1 | awk '{print int($1+0.5)}')
   local s=""
@@ -226,7 +239,6 @@ play_next() {
   play 2> /dev/null
 }
 
-# return: player pid
 get_player_pid() {
   cat $PATH_PLAYER_PID 2> /dev/null
 }
@@ -241,7 +253,9 @@ play() {
   PLAYER_STATE=$STATE_PLAYING
 }
 
+#
 # param: operation type
+#
 update_and_play() {
   update_playlist $1
   play 2> /dev/null
@@ -394,7 +408,9 @@ set_kbps() {
   fi
 }
 
+#
 # param: channel id
+#
 set_channel() {
   if [[ $1 =~ ^-?[0-9]+$ ]]; then
     PARAMS_CHANNEL=$1
