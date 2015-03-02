@@ -217,7 +217,7 @@ print_song_info() {
   local length=$(song length)
   local time=$(printf "%d:%02d" $(( length / 60)) $(( length % 60)))
   echo
-  echo "  $(yellow $(song artist) - $(green $(song title))) ($time)"
+  echo "  $(yellow $(song artist)) - $(green $(song title)) ($time)"
   echo "  $(cyan \<$(song albumtitle)\> $(song public_time))"
   echo "  $(stars $(song rating_avg)) $(heart $(song like))"
 }
