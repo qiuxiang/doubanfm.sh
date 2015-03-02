@@ -266,12 +266,12 @@ pause() {
     $STATE_PLAYING)
       pkill -19 -P $(get_player_pid)
       PLAYER_STATE=$STATE_STOPED
-      printf "\n  $(yellow Paused)\n"
+      printf "\n  Paused\n"
       ;;
     $STATE_STOPED)
       pkill -18 -P $(get_player_pid)
       PLAYER_STATE=$STATE_PLAYING
-      printf "\n  $(green Playing)\n"
+      printf "\n  Playing\n"
       ;;
   esac
 }
