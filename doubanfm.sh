@@ -331,24 +331,21 @@ print_commands() {
   [$(cyan t)] print and notify the song info
   [$(cyan c)] print channels
   [$(cyan l)] print playlist
-  [$(cyan i)] sign in
-  [$(cyan o)] sign out
   [$(cyan q)] quit
 EOF
 }
 
 sign_in() {
-  echo
   if already_sign_in; then
-    printf "  You already Login, press [o] to sign out.\n"
+    echo "You already sign in as $(cyan $USER_NAME \<$USER_EMAIL\>)"
   else
     show_cursor
     enable_echo
-    read -p "  Email: " email
+    read -p "Email: " email
 
     disable_echo
     hide_cursor
-    read -p "  Password: " password
+    read -p "Password: " password
 
     local data="email=$email&password=$password&"
     data+="app_name=$PARAMS_APP_NAME&version=$PARAMS_VERSION"
@@ -361,9 +358,9 @@ sign_in() {
       USER_TOKEN=$(echo $result | jq -r .token)
       USER_EXPIRE=$(echo $result | jq -r .expire)
       save_user_info
-      printf "\n  $(cyan $USER_NAME \<$USER_EMAIL\>)\n"
+      printf "\nSuccess: $(cyan $USER_NAME \<$USER_EMAIL\>)\n"
     else
-      printf "\n  $(red $message)\n"
+      printf "\nFailed: $(red $message)\n"
     fi
   fi
 }
@@ -375,7 +372,7 @@ sign_out() {
   USER_TOKEN=null
   USER_EXPIRE=null
   config user {}
-  printf "\n  Sign out\n"
+  echo "Sign out"
   [ $PARAMS_CHANNEL = -3 ] && set_channel 0 && update_and_play
 }
 
@@ -391,8 +388,6 @@ mainloop() {
       b) song_remove ;;
       c) print_channels ;;
       l) print_playlist ;;
-      i) sign_in ;;
-      o) sign_out ;;
       q) quit ;;
       h) print_commands ;;
     esac
@@ -427,16 +422,21 @@ Usage: $0 [-c channel_id | -k kbps]
 Options:
   -c channel_id    select channel
   -k kbps          set kbps, available values is 64, 128, 192
+  -i               sign in
+  -o               sign out
 EOF
 }
 
 init_path
 init_params
+load_user_info
 
-while getopts "c:k:h" opt; do
+while getopts c:k:hio opt; do
   case $opt in
     c) set_channel $OPTARG ;;
     k) set_kbps $OPTARG ;;
+    i) sign_in; exit ;;
+    o) sign_out; exit ;;
     h) print_help; exit ;;
   esac
 done
@@ -444,6 +444,5 @@ done
 trap quit INT
 disable_echo
 hide_cursor
-load_user_info
 update_and_play n
 mainloop
