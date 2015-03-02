@@ -115,7 +115,7 @@ save_user_info() {
   config user.expire $USER_EXPIRE
 }
 
-logged() {
+already_sign_in() {
   [ -n "$USER_ID" ] && [ $USER_ID != "null" ] && [ $USER_ID != "[]" ]
 }
 
@@ -159,7 +159,7 @@ build_params() {
   local params="kbps=$PARAMS_KBPS&channel=$PARAMS_CHANNEL"
   params+="&app_name=$PARAMS_APP_NAME&version=$PARAMS_VERSION"
   params+="&type=$PARAMS_TYPE&sid=$(song sid)"
-  logged && params+="&user_id=$USER_ID&token=$USER_TOKEN&expire=$USER_EXPIRE"
+  already_sign_in && params+="&user_id=$USER_ID&token=$USER_TOKEN&expire=$USER_EXPIRE"
   echo $params
 }
 
@@ -339,7 +339,7 @@ EOF
 
 sign_in() {
   echo
-  if logged; then
+  if already_sign_in; then
     printf "  You already Login, press [o] to sign out.\n"
   else
     show_cursor
