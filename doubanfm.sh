@@ -427,6 +427,14 @@ Options:
 EOF
 }
 
+welcome() {
+  if already_sign_in; then
+    echo "  Welcome $(cyan $USER_NAME \<$USER_EMAIL\>)"
+  else
+    echo "  Welcome guest"
+  fi
+}
+
 init_path
 init_params
 load_user_info
@@ -444,5 +452,6 @@ done
 trap quit INT
 disable_echo
 hide_cursor
+welcome
 update_and_play n
 mainloop
