@@ -323,14 +323,11 @@ quit() {
 print_commands() {
   cat << EOF
 
-  [$(cyan p)] play or pause
-  [$(cyan s)] skip this song
-  [$(cyan n)] play next song without report
-  [$(cyan b)] remove this song
+  [$(cyan p)] pause
+  [$(cyan b)] no longer play this song
   [$(cyan r)] like or unlike this song
-  [$(cyan t)] print and notify the song info
-  [$(cyan c)] print channels
-  [$(cyan l)] print playlist
+  [$(cyan n)] play the next song
+  [$(cyan i)] print and notify this song's info
   [$(cyan q)] quit
 EOF
 }
@@ -380,10 +377,10 @@ mainloop() {
   while true; do
     read -n 1 c
     case ${c:0:1} in
-      t) print_song_info; notify_song_info ;;
+      i) print_song_info; notify_song_info ;;
       p) pause ;;
-      s) song_skip ;;
-      n) play_next ;;
+      n) song_skip ;;
+      N) play_next ;;
       r) song_rate ;;
       b) song_remove ;;
       c) print_channels ;;
