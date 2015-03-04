@@ -310,7 +310,24 @@ print_playlist() {
 }
 
 print_channels() {
-  echo todo
+  local channels=$($CURL http://douban.fm/j/app/radio/channels | jq .channels)
+  local channels_length=$(echo $channels | jq length)
+
+  if [ $PARAMS_CHANNEL = -3 ]; then
+    echo "→ $(cyan 红心兆赫)(-3)"
+  else
+    echo "  $(cyan 红心兆赫)(-3)"
+  fi
+
+  for (( i = 0; i < channels_length; i++ )) do
+    local channel_id=$(echo $channels | jq -r .[$i].channel_id)
+    local name=$(echo $channels | jq -r .[$i].name)
+    if [ $i = $PARAMS_CHANNEL ]; then
+      echo "→ $(cyan $name)($channel_id)"
+    else
+      echo "  $(cyan $name)($channel_id)"
+    fi
+  done
 }
 
 quit() {
@@ -419,6 +436,7 @@ Usage: $0 [-c channel_id | -k kbps]
 Options:
   -c channel_id    select channel
   -k kbps          set kbps, available values is 64, 128, 192
+  -l               print channels list
   -i               sign in
   -o               sign out
 EOF
@@ -436,10 +454,11 @@ init_path
 init_params
 load_user_info
 
-while getopts c:k:hio opt; do
+while getopts c:k:lioh opt; do
   case $opt in
     c) set_channel $OPTARG ;;
     k) set_kbps $OPTARG ;;
+    l) print_channels; exit ;;
     i) sign_in; exit ;;
     o) sign_out; exit ;;
     h) print_help; exit ;;
