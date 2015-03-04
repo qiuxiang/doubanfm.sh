@@ -7,6 +7,7 @@ PATH_ALBUM_COVER=$PATH_BASE/albumcover
 PATH_CONFIG=$PATH_BASE/config.json
 PATH_PLAYLIST=$PATH_BASE/playlist.json
 PATH_PLAYLIST_INDEX=$PATH_BASE/index
+PATH_CHANNELS=$PATH_BASE/channels.json
 
 STATE_PLAYING=0
 STATE_STOPED=1
@@ -314,8 +315,16 @@ print_playlist() {
   done
 }
 
+#
+# return: channels json
+#
+get_channels() {
+  [ -f $PATH_CHANNELS ] || $CURL http://douban.fm/j/app/radio/channels | jq .channels > $PATH_CHANNELS
+  cat $PATH_CHANNELS
+}
+
 print_channels() {
-  local channels=$($CURL http://douban.fm/j/app/radio/channels | jq .channels)
+  local channels=$(get_channels)
   local channels_length=$(echo $channels | jq length)
 
   if [ $PARAMS_CHANNEL = $CHANNEL_FAVORITE ]; then
@@ -452,6 +461,13 @@ welcome() {
   else
     echo "  Welcome $(cyan guest)"
   fi
+
+  if [ $PARAMS_CHANNEL = $CHANNEL_FAVORITE ]; then
+    local channel_name=$(red 红心兆赫)
+  else
+    local channel_name=$(yellow $(get_channels | jq -r .[$PARAMS_CHANNEL].name))
+  fi
+  echo "  Current channel is $channel_name"
 }
 
 init_path
