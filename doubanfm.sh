@@ -14,6 +14,7 @@ STATE_STOPED=1
 CURL="curl -s -c $PATH_COOKIES -b $PATH_COOKIES"
 PLAYER=mpg123
 DEFAULT_CONFIG='{ "kbps": 192, "channel": 0 }'
+CHANNEL_FAVORITE=-3
 
 #
 # get or set config
@@ -22,7 +23,8 @@ config() {
   if [ -z $2 ]; then
     jq -r ".$1" < $PATH_CONFIG
   else
-    jq ".$1=$2" < $PATH_CONFIG > $PATH_CONFIG
+    local config=$(jq ".$1=$2" < $PATH_CONFIG)
+    echo $config > $PATH_CONFIG
   fi
 }
 
@@ -179,7 +181,7 @@ get_playlist_length() {
 update_playlist() {
   local playlist=$(request_playlist $1)
   echo $playlist > $PATH_PLAYLIST
-  [ $(get_playlist_length) = 0 ] && echo_error "Playlist is empty" && quit
+  [ $(get_playlist_length) = 0 ] && printf "\n  $(red Error: playlist is empty.)" && quit
   playlist_index 0
 }
 
@@ -276,7 +278,11 @@ pause() {
 }
 
 song_skip() {
-  update_and_play s
+  if [ $PARAMS_CHANNEL = $CHANNEL_FAVORITE ]; then
+    play_next
+  else
+    update_and_play s
+  fi
 }
 
 song_rate() {
@@ -312,10 +318,10 @@ print_channels() {
   local channels=$($CURL http://douban.fm/j/app/radio/channels | jq .channels)
   local channels_length=$(echo $channels | jq length)
 
-  if [ $PARAMS_CHANNEL = -3 ]; then
-    echo "→ $(cyan 红心兆赫)(-3)"
+  if [ $PARAMS_CHANNEL = $CHANNEL_FAVORITE ]; then
+    echo "→ $(cyan 红心兆赫)($CHANNEL_FAVORITE)"
   else
-    echo "  $(cyan 红心兆赫)(-3)"
+    echo "  $(cyan 红心兆赫)($CHANNEL_FAVORITE)"
   fi
 
   for (( i = 0; i < channels_length; i++ )) do
@@ -386,7 +392,7 @@ sign_out() {
   USER_EXPIRE=null
   config user {}
   echo "Sign out"
-  [ $PARAMS_CHANNEL = -3 ] && set_channel 0 && update_and_play
+  [ $PARAMS_CHANNEL = $CHANNEL_FAVORITE ] && set_channel 0 && update_and_play
 }
 
 mainloop() {
@@ -445,7 +451,7 @@ welcome() {
   if already_sign_in; then
     echo "  Welcome $(cyan $USER_NAME \<$USER_EMAIL\>)"
   else
-    echo "  Welcome guest"
+    echo "  Welcome $(cyan guest)"
   fi
 }
 
