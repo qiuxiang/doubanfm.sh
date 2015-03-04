@@ -22,8 +22,7 @@ config() {
   if [ -z $2 ]; then
     jq -r ".$1" < $PATH_CONFIG
   else
-    local config=$(jq ".$1=$2" < $PATH_CONFIG)
-    echo $config > $PATH_CONFIG
+    jq ".$1=$2" < $PATH_CONFIG > $PATH_CONFIG
   fi
 }
 
