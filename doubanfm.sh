@@ -96,10 +96,6 @@ enable_echo() {
   stty echo 2> /dev/null
 }
 
-echo_error() {
-  red "Error: $1." >&2
-}
-
 load_user_info() {
   USER_NAME=$(config user.name)
   USER_EMAIL=$(config user.email)
@@ -212,7 +208,7 @@ stars() {
       s+="☆"
     fi
   done
-  echo "$s $1"
+  echo $s $1
 }
 
 print_song_info() {
@@ -327,6 +323,7 @@ print_channels() {
   local channels=$(get_channels)
   local channels_length=$(echo $channels | jq length)
 
+  echo
   if [ $PARAMS_CHANNEL = $CHANNEL_FAVORITE ]; then
     echo "→ $(cyan 红心兆赫)($CHANNEL_FAVORITE)"
   else
@@ -400,7 +397,7 @@ sign_out() {
   USER_TOKEN=null
   USER_EXPIRE=null
   config user {}
-  echo "Sign out"
+  echo Sign out
 }
 
 mainloop() {
@@ -426,7 +423,7 @@ set_kbps() {
     PARAMS_KBPS=$1
     config kbps $1
   else
-    echo_error "Available kbps values is 64, 128, 192"
+    printf "  $(red Note: Available kbps values is 64, 128, 192.)\n\n"
   fi
 }
 
@@ -438,7 +435,7 @@ set_channel() {
     PARAMS_CHANNEL=$1
     config channel $1
   else
-    echo_error "Channel id must be a number"
+    printf "  $(red Note: Channel id must be a number.)\n\n"
   fi
 }
 
@@ -478,7 +475,7 @@ while getopts c:k:lioh opt; do
   case $opt in
     c) set_channel $OPTARG ;;
     k) set_kbps $OPTARG ;;
-    l) print_channels; exit ;;
+    l) print_channels; echo; exit ;;
     i) sign_in; exit ;;
     o) sign_out; exit ;;
     h) print_help; exit ;;
