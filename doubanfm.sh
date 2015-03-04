@@ -377,9 +377,9 @@ sign_in() {
       USER_TOKEN=$(echo $result | jq -r .token)
       USER_EXPIRE=$(echo $result | jq -r .expire)
       save_user_info
-      printf "\nSuccess: $(cyan $USER_NAME \<$USER_EMAIL\>)\n"
+      printf "\n\n$(green Sign in success as $USER_NAME \<$USER_EMAIL\>)\n"
     else
-      printf "\nFailed: $(red $message)\n"
+      printf "\n\n$(red Sign in failed with $message)\n"
     fi
   fi
 }
@@ -392,7 +392,6 @@ sign_out() {
   USER_EXPIRE=null
   config user {}
   echo "Sign out"
-  [ $PARAMS_CHANNEL = $CHANNEL_FAVORITE ] && set_channel 0 && update_and_play
 }
 
 mainloop() {
