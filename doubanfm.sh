@@ -356,6 +356,7 @@ print_commands() {
   [$(cyan r)] like or unlike this song
   [$(cyan n)] play the next song
   [$(cyan i)] print and notify this song's info
+  [$(cyan i)] open alubm page in browser
   [$(cyan q)] quit
 EOF
 }
@@ -400,11 +401,16 @@ sign_out() {
   echo Sign out
 }
 
+open_in_brower() {
+  x-www-browser $(song album_url) > /dev/null 2>&1
+}
+
 mainloop() {
   while true; do
     read -n 1 c
     case ${c:0:1} in
       i) print_song_info; notify_song_info ;;
+      o) open_in_brower ;;
       p) pause ;;
       n) song_skip ;;
       N) play_next ;;
