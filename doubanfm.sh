@@ -16,6 +16,7 @@ CURL="curl -s -c $PATH_COOKIES -b $PATH_COOKIES"
 PLAYER=mpg123
 DEFAULT_CONFIG='{ "kbps": 192, "channel": 0 }'
 CHANNEL_FAVORITE=-3
+UNAME=$(uname)
 
 #
 # get or set config
@@ -221,9 +222,17 @@ print_song_info() {
 }
 
 notify_song_info() {
-  notify-send -i $(song picture_path) \
-    "$(song title) $(heart $(song like))" \
-    "$(song artist)《$(song albumtitle)》\n$(stars $(song rating_avg))"
+  local title="$(song title) $(heart $(song like))"
+  local artist_album="$(song artist)《$(song albumtitle)》"
+  local stars="$(stars $(song rating_avg))"
+
+  case $UNAME in
+    Linux)
+      notify-send "$title" "$artist_album\n$stars" -i "$(song picture_path)" ;;
+    Darwin)
+      terminal-notifier -title "$title" -subtitle "$artist_album" \
+        -message "$stars" -appIcon "$(song picture_path)" -group "$0" ;;
+  esac
 }
 
 play_next() {
