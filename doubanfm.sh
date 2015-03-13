@@ -13,10 +13,13 @@ STATE_PLAYING=0
 STATE_STOPED=1
 
 CURL="curl -s -c $PATH_COOKIES -b $PATH_COOKIES"
-PLAYER=mpg123
 DEFAULT_CONFIG='{ "kbps": 192, "channel": 0 }'
 CHANNEL_FAVORITE=-3
 UNAME=$(uname)
+
+command -v mpg123 > /dev/null && PLAYER=mpg123
+command -v mplayer > /dev/null && PLAYER=mplayer
+test -z "$PLAYE" && echo "mpg123 or mplayer required"; exit 1
 
 #
 # get or set config
