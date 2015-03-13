@@ -9,10 +9,10 @@ PATH_PLAYLIST=$PATH_BASE/playlist.json
 PATH_PLAYLIST_INDEX=$PATH_BASE/index
 PATH_CHANNELS=$PATH_BASE/channels.json
 
-STATE_PLAYING=0
-STATE_STOPED=1
-SONG_LIKED=1
+PLAYER_PLAYING=0
+PLAYER_STOPED=1
 SONG_DISLIKE=0
+SONG_LIKED=1
 
 CURL="curl -s -c $PATH_COOKIES -b $PATH_COOKIES"
 DEFAULT_CONFIG='{ "kbps": 192, "channel": 0 }'
@@ -262,7 +262,7 @@ play() {
   [ -f $PATH_PLAYER_PID ] && pkill -P $(get_player_pid)
   $PLAYER $(song url) &> /dev/null && request_playlist e > /dev/null && play_next &
   echo $! > $PATH_PLAYER_PID
-  PLAYER_STATE=$STATE_PLAYING
+  PLAYER_STATE=$PLAYER_PLAYING
 }
 
 #
@@ -275,13 +275,13 @@ update_and_play() {
 
 pause() {
   case $PLAYER_STATE in
-    $STATE_PLAYING)
+    $PLAYER_PLAYING)
       pkill -19 -P $(get_player_pid)
-      PLAYER_STATE=$STATE_STOPED
+      PLAYER_STATE=$PLAYER_STOPED
       printf "\n  Paused\n" ;;
-    $STATE_STOPED)
+    $PLAYER_STOPED)
       pkill -18 -P $(get_player_pid)
-      PLAYER_STATE=$STATE_PLAYING
+      PLAYER_STATE=$PLAYER_PLAYING
       printf "\n  Playing\n" ;;
   esac
 }
