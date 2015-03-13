@@ -11,6 +11,8 @@ PATH_CHANNELS=$PATH_BASE/channels.json
 
 STATE_PLAYING=0
 STATE_STOPED=1
+SONG_LIKED=1
+SONG_DISLIKE=0
 
 CURL="curl -s -c $PATH_COOKIES -b $PATH_COOKIES"
 DEFAULT_CONFIG='{ "kbps": 192, "channel": 0 }'
@@ -19,7 +21,7 @@ UNAME=$(uname)
 
 command -v mpg123 > /dev/null && PLAYER=mpg123
 command -v mplayer > /dev/null && PLAYER=mplayer
-test -z "$PLAYE" && echo "mpg123 or mplayer required"; exit 1
+test -z "$PLAYER" && echo "mpg123 or mplayer required" && exit 1
 
 #
 # get or set config
@@ -293,15 +295,21 @@ song_skip() {
 }
 
 song_rate() {
-  if [ $(song like) = 0 ]; then
-    update_playlist r
-    # todo: set song like = 1
-    printf "\n  $(green Liked)\n"
+  if [ $(song like) = $SONG_DISLIKE ]; then
+    local like=$SONG_LIKED
+    local opration_type=r
+    local message=Liked
   else
-    update_playlist u
-    # todo: set song like = 0
-    printf "\n  $(yellow Unlike)\n"
+    local like=$SONG_DISLIKE
+    local opration_type=u
+    local message=Dislike
   fi
+
+  local song=$(jq ".[$(playlist_index)] | .like=$like" < $PATH_PLAYLIST)
+  update_playlist $opration_type
+  local playlist=$(jq ". + [$song] | reverse" < $PATH_PLAYLIST)
+  echo $playlist > $PATH_PLAYLIST
+  printf "\n  $message\n"
 }
 
 song_remove() {
@@ -363,7 +371,7 @@ print_commands() {
 
   [$(cyan p)] pause
   [$(cyan b)] no longer play this song
-  [$(cyan r)] like or unlike this song
+  [$(cyan r)] like or dislike this song
   [$(cyan n)] play the next song
   [$(cyan i)] print and notify this song's info
   [$(cyan i)] open alubm page in browser
