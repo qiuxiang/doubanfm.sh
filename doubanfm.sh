@@ -420,7 +420,7 @@ sign_out() {
 }
 
 open_in_brower() {
-  x-www-browser $(song album_url) > /dev/null 2>&1
+  xdg-open $(song album_url) > /dev/null 2>&1
 }
 
 mainloop() {
