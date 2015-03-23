@@ -470,7 +470,7 @@ set_channel() {
 
 print_help() {
   cat << EOF
-Usage: $0 [-c channel_id | -k kbps]
+Usage: doubanfm [-c channel_id | -k kbps]
 
 Options:
   -c channel_id    select channel
