@@ -376,7 +376,7 @@ print_commands() {
   [$(cyan b)] no longer play this song
   [$(cyan r)] like or dislike this song
   [$(cyan n)] play the next song
-  [$(cyan i)] print and notify this song's info
+  [$(cyan i)] print and notify this song
   [$(cyan i)] open alubm page in browser
   [$(cyan q)] quit
 EOF
