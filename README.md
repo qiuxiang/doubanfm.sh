@@ -15,5 +15,5 @@
 
 依赖：
 - `mpg123` 或 `mplayer`（音频播放器）
-- `jq`（JSON 解析）
-- `curl`（HTTP 请求）
+- `jq`（用于 JSON 解析）
+- `curl`（用于 HTTP 请求）
