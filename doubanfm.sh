@@ -345,7 +345,6 @@ print_channels() {
   local channels=$(get_channels)
   local channels_length=$(echo $channels | jq length)
 
-  echo
   if [ $PARAMS_CHANNEL = $CHANNEL_FAVORITE ]; then
     echo "→ $(cyan 红心兆赫)($CHANNEL_FAVORITE)"
   else
@@ -385,9 +384,8 @@ EOF
 
 sign_in() {
   if already_sign_in; then
-    printf "\n  你已经登录，$USER_NAME <$USER_EMAIL>\n\n"
+    printf "  你已经登录，$USER_NAME <$USER_EMAIL>\n\n"
   else
-    echo
     enable_echo
     show_cursor
     read -p "  邮箱：" email
@@ -421,7 +419,7 @@ sign_out() {
   USER_TOKEN=null
   USER_EXPIRE=null
   config user {}
-  printf "\n  已注销\n\n"
+  printf "  已注销\n\n"
 }
 
 open_in_brower() {
@@ -452,7 +450,7 @@ set_kbps() {
     PARAMS_KBPS=$1
     config kbps $1
   else
-    printf "\n  $(red 有效的码率为 64、128、192)\n\n"
+    printf "  $(red 有效的码率为 64、128、192)\n\n"
   fi
 }
 
@@ -464,20 +462,21 @@ set_channel() {
     PARAMS_CHANNEL=$1
     config channel $1
   else
-    printf "\n  $(red channel_id 应该是数字)\n\n"
+    printf "  $(red channel_id 应该是数字)\n\n"
   fi
 }
 
 print_help() {
   cat << EOF
-用法: doubanfm [-c channel_id | -k kbps]
+  用法：doubanfm [-c channel_id | -k kbps]
 
-选项:
-  -c channel_id    选择兆赫，用 -l 参数可以查看可用的兆赫
-  -k kbps          设置码率，有效值为 64、128、192
-  -l               显示频道列表
-  -i               登录
-  -o               注销
+  选项：
+    -c channel_id    选择兆赫，用 -l 参数可以查看可用的兆赫
+    -k kbps          设置码率，有效值为 64、128、192
+    -l               显示频道列表
+    -i               登录
+    -o               注销
+
 EOF
 }
 
@@ -495,6 +494,7 @@ welcome() {
   fi
 }
 
+echo
 init_path
 init_params
 load_user_info
