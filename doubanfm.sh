@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2015 Qiu Xiang <xiang.qiu@qq.com> under MIT licence
+# (c) 2015 Qiu Xiang <xiang.qiu@qq.com> under MIT licence
 #
 
 PATH_BASE=$HOME/.doubanfm.sh
