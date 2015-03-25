@@ -17,7 +17,7 @@ PLAYER_STOPED=1
 SONG_DISLIKE=0
 SONG_LIKED=1
 
-CURL="curl -s -c $PATH_COOKIES -b $PATH_COOKIES"
+CURL="curl -L -s -c $PATH_COOKIES -b $PATH_COOKIES"
 DEFAULT_CONFIG='{ "kbps": 192, "channel": 0 }'
 CHANNEL_FAVORITE=-3
 UNAME=$(uname)
@@ -176,7 +176,7 @@ build_params() {
 #
 request_playlist() {
   PARAMS_TYPE=$1
-  $CURL http://douban.fm/j/app/radio/people?$(build_params) | jq .song
+  $CURL http://douban.com/j/app/radio/people?$(build_params) | jq .song
 }
 
 get_playlist_length() {
@@ -187,7 +187,7 @@ get_playlist_length() {
 update_playlist() {
   local playlist=$(request_playlist $1)
   echo $playlist > $PATH_PLAYLIST
-  [ $(get_playlist_length) = 0 ] && printf "\n  $(red Error: playlist is empty.)" && quit
+  [ $(get_playlist_length) = 0 ] && printf "\n  $(red 播放列表为空)\n" && quit
   playlist_index 0
 }
 
@@ -204,8 +204,8 @@ heart() {
 }
 
 #
-# param: rating [0, 5]
-# return: ★★★☆☆ 3.2
+# param: rating_avg
+# return: stars
 #
 stars() {
   local n=$(echo $1 | awk '{print int($1+0.5)}')
@@ -224,14 +224,14 @@ print_song_info() {
   local length=$(song length)
   local time=$(printf "%d:%02d" $(( length / 60)) $(( length % 60)))
   echo
-  echo "  $(yellow $(song artist)) - $(green $(song title)) ($time)"
-  echo "  $(cyan \<$(song albumtitle)\> $(song public_time))"
+  echo "  $(yellow $(song artist)) $(green $(song title)) ($time)"
+  echo "  $(cyan $(song albumtitle) $(song public_time))"
   echo "  $(stars $(song rating_avg)) $(heart $(song like))"
 }
 
 notify_song_info() {
   local title="$(song title) $(heart $(song like))"
-  local artist_album="$(song artist)《$(song albumtitle)》"
+  local artist_album="$(song artist) 《$(song albumtitle)》"
   local stars="$(stars $(song rating_avg))"
 
   case $UNAME in
@@ -281,11 +281,11 @@ pause() {
     $PLAYER_PLAYING)
       pkill -19 -P $(get_player_pid)
       PLAYER_STATE=$PLAYER_STOPED
-      printf "\n  Paused\n" ;;
+      printf "\n  暂停播放\n" ;;
     $PLAYER_STOPED)
       pkill -18 -P $(get_player_pid)
       PLAYER_STATE=$PLAYER_PLAYING
-      printf "\n  Playing\n" ;;
+      printf "\n  恢复播放\n" ;;
   esac
 }
 
@@ -301,11 +301,11 @@ song_rate() {
   if [ $(song like) = $SONG_DISLIKE ]; then
     local like=$SONG_LIKED
     local opration_type=r
-    local message=Liked
+    local message=喜欢这首歌
   else
     local like=$SONG_DISLIKE
     local opration_type=u
-    local message=Dislike
+    local message=不再喜欢
   fi
 
   local song=$(jq ".[$(playlist_index)] | .like=$like" < $PATH_PLAYLIST)
@@ -325,9 +325,9 @@ print_playlist() {
   echo
   for (( i = 0; i < playlist_length; i++ )) do
     if [ $i = $current_index ]; then
-      echo "♪ $(yellow $(song artist $i)) - $(green $(song title $i))"
+      echo "♪ $(yellow $(song artist $i)) $(green $(song title $i))"
     else
-      echo "  $(yellow $(song artist $i)) - $(green $(song title $i))"
+      echo "  $(yellow $(song artist $i)) $(green $(song title $i))"
     fi
   done
 }
@@ -336,7 +336,8 @@ print_playlist() {
 # return: channels json
 #
 get_channels() {
-  [ -f $PATH_CHANNELS ] || $CURL http://douban.fm/j/app/radio/channels | jq .channels > $PATH_CHANNELS
+  [ -f $PATH_CHANNELS ] || $CURL http://douban.com/j/app/radio/channels \
+    | jq .channels > $PATH_CHANNELS
   cat $PATH_CHANNELS
 }
 
@@ -372,27 +373,28 @@ quit() {
 print_commands() {
   cat << EOF
 
-  [$(cyan p)] pause
-  [$(cyan b)] no longer play this song
-  [$(cyan r)] like or dislike this song
-  [$(cyan n)] play the next song
-  [$(cyan i)] print and notify this song
-  [$(cyan i)] open alubm page in browser
-  [$(cyan q)] quit
+  [$(cyan p)] 暂停或恢复播放
+  [$(cyan b)] 不再播放这首歌
+  [$(cyan r)] 喜欢这首歌或不再喜欢
+  [$(cyan n)] 下一首
+  [$(cyan i)] 显示当前歌曲信息
+  [$(cyan i)] 在浏览器中打开专辑页面
+  [$(cyan q)] 退出
 EOF
 }
 
 sign_in() {
   if already_sign_in; then
-    echo "You already sign in as $(cyan $USER_NAME \<$USER_EMAIL\>)"
+    printf "\n  你已经登录，$USER_NAME <$USER_EMAIL>\n\n"
   else
-    show_cursor
+    echo
     enable_echo
-    read -p "Email: " email
+    show_cursor
+    read -p "  邮箱：" email
 
     disable_echo
     hide_cursor
-    read -p "Password: " password
+    read -p "  密码：" password
 
     local data="email=$email&password=$password&"
     data+="app_name=$PARAMS_APP_NAME&version=$PARAMS_VERSION"
@@ -405,9 +407,9 @@ sign_in() {
       USER_TOKEN=$(echo $result | jq -r .token)
       USER_EXPIRE=$(echo $result | jq -r .expire)
       save_user_info
-      printf "\n\n$(green Sign in success as $USER_NAME \<$USER_EMAIL\>)\n"
+      printf "\n\n  欢迎，$USER_NAME <$USER_EMAIL>\n\n"
     else
-      printf "\n\n$(red Sign in failed with $message)\n"
+      printf "\n\n  $(red $message)\n\n"
     fi
   fi
 }
@@ -419,7 +421,7 @@ sign_out() {
   USER_TOKEN=null
   USER_EXPIRE=null
   config user {}
-  echo Sign out
+  printf "\n  已注销\n\n"
 }
 
 open_in_brower() {
@@ -450,7 +452,7 @@ set_kbps() {
     PARAMS_KBPS=$1
     config kbps $1
   else
-    printf "  $(red Note: Available kbps values is 64, 128, 192.)\n\n"
+    printf "\n  $(red 有效的码率为 64、128、192)\n\n"
   fi
 }
 
@@ -462,36 +464,35 @@ set_channel() {
     PARAMS_CHANNEL=$1
     config channel $1
   else
-    printf "  $(red Note: Channel id must be a number.)\n\n"
+    printf "\n  $(red channel_id 应该是数字)\n\n"
   fi
 }
 
 print_help() {
   cat << EOF
-Usage: doubanfm [-c channel_id | -k kbps]
+用法: doubanfm [-c channel_id | -k kbps]
 
-Options:
-  -c channel_id    select channel
-  -k kbps          set kbps, available values is 64, 128, 192
-  -l               print channels list
-  -i               sign in
-  -o               sign out
+选项:
+  -c channel_id    选择兆赫，用 -l 参数可以查看可用的兆赫
+  -k kbps          设置码率，有效值为 64、128、192
+  -l               显示频道列表
+  -i               登录
+  -o               注销
 EOF
 }
 
 welcome() {
   if already_sign_in; then
-    echo "  Welcome $(cyan $USER_NAME \<$USER_EMAIL\>)"
+    echo "  $USER_NAME，$USER_EMAIL"
   else
-    echo "  Welcome $(cyan guest)"
+    echo "  $(yellow 未登录)"
   fi
 
   if [ $PARAMS_CHANNEL = $CHANNEL_FAVORITE ]; then
-    local channel_name=$(red 红心兆赫)
+    echo "  $(red 红心兆赫)"
   else
-    local channel_name=$(yellow $(get_channels | jq -r .[$PARAMS_CHANNEL].name))
+    echo "  $(get_channels | jq -r .[$PARAMS_CHANNEL].name)"
   fi
-  echo "  Current channel is $channel_name"
 }
 
 init_path
