@@ -17,6 +17,7 @@ PLAYER_STOPED=1
 SONG_DISLIKE=0
 SONG_LIKED=1
 
+BASE_URL=http://douban.com/j/app
 CURL="curl -L -s -c $PATH_COOKIES -b $PATH_COOKIES"
 DEFAULT_CONFIG='{ "kbps": 192, "channel": 0 }'
 CHANNEL_FAVORITE=-3
@@ -176,7 +177,7 @@ build_params() {
 #
 request_playlist() {
   PARAMS_TYPE=$1
-  $CURL http://douban.com/j/app/radio/people?$(build_params) | jq .song
+  $CURL $BASE_URL/radio/people?$(build_params) | jq .song
 }
 
 get_playlist_length() {
@@ -336,8 +337,7 @@ print_playlist() {
 # return: channels json
 #
 get_channels() {
-  [ -f $PATH_CHANNELS ] || $CURL http://douban.com/j/app/radio/channels \
-    | jq .channels > $PATH_CHANNELS
+  [ -f $PATH_CHANNELS ] || $CURL $BASE_URL/radio/channels | jq .channels > $PATH_CHANNELS
   cat $PATH_CHANNELS
 }
 
@@ -398,7 +398,7 @@ sign_in() {
 
     local data="email=$email&password=$password&"
     data+="app_name=$PARAMS_APP_NAME&version=$PARAMS_VERSION"
-    local result=$($CURL -d $data http://www.douban.com/j/app/login)
+    local result=$($CURL -d $data $BASE_URL/login)
     local message=$(echo $result | jq -r .err)
     if [ $message = "ok" ]; then
       USER_NAME=$(echo $result | jq -r .user_name)
