@@ -466,6 +466,24 @@ set_channel() {
   fi
 }
 
+get_liked_songs() {
+  local songs=$($CURL $BASE_URL/radio/liked_songs?$(build_params) | jq .songs)
+  local songs_length=$(echo $songs | jq length)
+  local result="title=红心歌曲\n\n"
+  for (( i = 0; i < songs_length; i++ )) do
+    result+="uri=$(echo $songs | jq -r ".[$i].url")\n"
+    result+="artist=$(echo $songs | jq -r ".[$i].artist")\n"
+    result+="title=$(echo $songs | jq -r ".[$i].title")\n"
+    result+="album=$(echo $songs | jq -r ".[$i].albumtitle")\n"
+    result+="year=$(echo $songs | jq -r ".[$i].public_time")\n"
+    result+="length=$(echo $songs | jq -r ".[$i].length")000\n"
+    result+="bitrate=$(echo $songs | jq -r ".[$i].kbps")\n"
+    result+="codec=MPEG-1 layer 3\n"
+    result+="quality=Stereo, 44100 Hz\n\n"
+  done
+  echo -e $result > 红心歌曲.audpl
+}
+
 print_help() {
   cat << EOF
   用法：doubanfm [-c channel_id | -k kbps]
@@ -499,13 +517,14 @@ init_path
 init_params
 load_user_info
 
-while getopts c:k:lioh opt; do
+while getopts c:k:liohf opt; do
   case $opt in
     c) set_channel $OPTARG ;;
     k) set_kbps $OPTARG ;;
     l) print_channels; echo; exit ;;
     i) sign_in; exit ;;
     o) sign_out; exit ;;
+    f) get_liked_songs; exit ;;
     h) print_help; exit ;;
   esac
 done
