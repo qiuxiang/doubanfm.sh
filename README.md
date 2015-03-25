@@ -1,4 +1,4 @@
-bash 实现的 [douban.fm](http://douban.fm) 客户端
+这是一个 bash 实现的 [douban.fm](http://douban.fm) 客户端
 
 ![screenshot](http://qiuxiang.qiniudn.com/doubanfm.sh.png?5295)
 
