@@ -467,7 +467,7 @@ set_channel() {
 }
 
 get_liked_songs() {
-  local songs=$($CURL $BASE_URL/radio/liked_songs?$(build_params) | jq .songs)
+  local songs=$($CURL "$BASE_URL/radio/liked_songs?$(build_params)&count=999" | jq .songs)
   local songs_length=$(echo $songs | jq length)
   local result="title=红心歌曲\n\n"
   for (( i = 0; i < songs_length; i++ )) do
@@ -482,6 +482,7 @@ get_liked_songs() {
     result+="quality=Stereo, 44100 Hz\n\n"
   done
   echo -e $result > 红心歌曲.audpl
+  echo -e "  成功导出到“红心歌曲.audpl”\n"
 }
 
 print_help() {
