@@ -396,7 +396,7 @@ sign_in() {
 
     local data="email=$email&password=$password&"
     data+="app_name=$PARAMS_APP_NAME&version=$PARAMS_VERSION"
-    local result=$($CURL -d $data $BASE_URL/login)
+    local result=$($CURL -d $data http://www.douban.com/j/app/login)
     local message=$(echo $result | jq -r .err)
     if [ $message = "ok" ]; then
       USER_NAME=$(echo $result | jq -r .user_name)
