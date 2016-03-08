@@ -1,6 +1,6 @@
 这是一个 bash 实现的 [douban.fm](http://douban.fm) 客户端
 
-![screenshot](http://qiuxiang.qiniudn.com/doubanfm.sh.png?5295)
+![screenshot](https://cloud.githubusercontent.com/assets/1709072/13595315/3d66140e-e545-11e5-94f0-bb63b8f1b7e8.png)
 
 ```
 用法：doubanfm [-c channel_id | -k kbps]
