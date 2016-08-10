@@ -183,23 +183,6 @@ heart() {
   fi
 }
 
-#
-# param: rating_avg
-# return: stars
-#
-stars() {
-  local n=$(echo $1 | awk '{print int($1+0.5)}')
-  local s=""
-  for (( i = 0; i < 5; i++ )) do
-    if [ $i -lt $n ]; then
-      s+="★"
-    else
-      s+="☆"
-    fi
-  done
-  echo $s $1
-}
-
 print_song_info() {
   local length=$(song length)
   local time=$(printf "%d:%02d" $(( length / 60)) $(( length % 60)))
@@ -295,19 +278,6 @@ song_remove() {
   update_and_play b
 }
 
-print_playlist() {
-  local current_index=$(playlist_index)
-  local playlist_length=$(get_playlist_length)
-  echo
-  for (( i = 0; i < playlist_length; i++ )) do
-    if [ $i = $current_index ]; then
-      echo "♪ $(yellow $(song artist $i)) $(green $(song title $i))"
-    else
-      echo "  $(yellow $(song artist $i)) $(green $(song title $i))"
-    fi
-  done
-}
-
 quit() {
   pkill -P $(get_player_pid) > /dev/null 2>&1
   show_cursor
@@ -385,7 +355,6 @@ mainloop() {
       N) play_next ;;
       r) song_rate ;;
       b) song_remove ;;
-      l) print_playlist ;;
       q) quit ;;
       h) print_commands ;;
     esac
