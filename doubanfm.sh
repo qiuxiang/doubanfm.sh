@@ -11,17 +11,17 @@ PATH_CONFIG=$PATH_BASE/config.json
 PATH_PLAYLIST=$PATH_BASE/playlist.json
 PATH_PLAYLIST_INDEX=$PATH_BASE/index
 PATH_CHANNELS=$PATH_BASE/channels.json
+PATH_CAPTCHA=$PATH_BASE/captcha.jpg
 
 PLAYER_PLAYING=0
 PLAYER_STOPPED=1
 SONG_DISLIKE=0
 SONG_LIKED=1
 
-BASE_URL=https://douban.fm/j/mine
+HOST=https://douban.fm
 CURL="curl -L -s -c $PATH_COOKIES -b $PATH_COOKIES"
 DEFAULT_CONFIG='{ "channel": 0 }'
 CHANNEL_FAVORITE=-3
-UNAME=$(uname)
 
 command -v mplayer > /dev/null && PLAYER=mplayer
 test -z "$PLAYER" && echo "mplayer required" && exit 1
@@ -104,25 +104,8 @@ enable_echo() {
   stty echo 2> /dev/null
 }
 
-load_user_info() {
-  USER_NAME=$(config user.name)
-  USER_EMAIL=$(config user.email)
-  USER_ID=$(config user.id)
-  USER_TOKEN=$(config user.token)
-  USER_EXPIRE=$(config user.expire)
-}
-
-save_user_info() {
-  config user {}
-  config user.id $USER_ID
-  config user.name \"$USER_NAME\"
-  config user.email \"$USER_EMAIL\"
-  config user.token \"$USER_TOKEN\"
-  config user.expire $USER_EXPIRE
-}
-
-already_sign_in() {
-  [ -n "$USER_ID" ] && [ $USER_ID != "null" ] && [ $USER_ID != "[]" ]
+load_user() {
+  USER=$(config user)
 }
 
 #
@@ -164,7 +147,6 @@ song() {
 build_params() {
   local params="from=mainsite&channel=$PARAMS_CHANNEL"
   params+="&type=$PARAMS_TYPE&sid=$(song sid)"
-  already_sign_in && params+="&user_id=$USER_ID&token=$USER_TOKEN&expire=$USER_EXPIRE"
   echo $params
 }
 
@@ -174,7 +156,7 @@ build_params() {
 #
 request_playlist() {
   PARAMS_TYPE=$1
-  $CURL $BASE_URL/playlist?$(build_params) | jq .song
+  $CURL $HOST/j/mine/playlist?$(build_params) | jq .song
 }
 
 get_playlist_length() {
@@ -230,9 +212,9 @@ notify_song_info() {
   local title="$(song title) $(heart $(song like))"
   local artist_album="$(song artist) 《$(song albumtitle)》"
 
-  case $UNAME in
+  case $(uname) in
     Linux)
-      notify-send "$title" "$artist_album\n$stars" -i "$(song picture_path)" ;;
+      notify-send "$title" "$artist_album" -i "$(song picture_path)" ;;
     Darwin)
       terminal-notifier -title "$title" -subtitle "$artist_album" \
         -message "" -contentImage "$(song picture_path)" ;;
@@ -328,14 +310,6 @@ print_playlist() {
   done
 }
 
-#
-# return: channels json
-#
-get_channels() {
-  [ -f $PATH_CHANNELS ] || $CURL $BASE_URL/radio/channels | jq .channels > $PATH_CHANNELS
-  cat $PATH_CHANNELS
-}
-
 quit() {
   pkill -P $(get_player_pid) > /dev/null 2>&1
   show_cursor
@@ -357,42 +331,44 @@ EOF
 }
 
 sign_in() {
-  if already_sign_in; then
-    printf "  你已经登录，$USER_NAME <$USER_EMAIL>\n\n"
+  if [ $USER != "null" ]; then
+    printf "你已经登录，$USER_NAME\n"
   else
+    local captcha_id=$(expr $($CURL $HOST/j/new_captcha) : '"\(.*\)"')
+    $CURL "$HOST/misc/captcha?id=$captcha_id" > $PATH_CAPTCHA
+    open $PATH_CAPTCHA
+#    local email="xiang.qiu@qq.com"
+#    local password="a2099420"
+
     enable_echo
     show_cursor
-    read -p "  邮箱：" email
+    read -p "邮箱：" email
 
     disable_echo
     hide_cursor
-    read -p "  密码：" password
+    read -p "密码：" password
 
-    local data="email=$email&password=$password&"
-    data+="app_name=$PARAMS_APP_NAME&version=$PARAMS_VERSION"
-    local result=$($CURL -d $data http://www.douban.com/j/app/login)
-    local message=$(echo $result | jq -r .err)
-    if [ $message = "ok" ]; then
-      USER_NAME=$(echo $result | jq -r .user_name)
-      USER_EMAIL=$(echo $result | jq -r .email)
-      USER_ID=$(echo $result | jq -r .user_id)
-      USER_TOKEN=$(echo $result | jq -r .token)
-      USER_EXPIRE=$(echo $result | jq -r .expire)
-      save_user_info
-      printf "\n\n  欢迎，$USER_NAME <$USER_EMAIL>\n\n"
+    enable_echo
+    show_cursor
+    echo
+    read -p "验证码：" captcha
+
+    local data="source=radio&alias=$email&form_password=$password&"
+    data+="captcha_solution=$captcha&captcha_id=$captcha_id&remember=on&task=sync_channel_list"
+    local result=$($CURL -d $data $HOST/j/login)
+    local message=$(echo $result | jq -r .err_msg)
+    if [ $message = "null" ]; then
+      USER=$(echo $result | jq -r .user_info.name)
+      config user \"$USER\"
+      printf "\n欢迎，$USER\n"
     else
-      printf "\n\n  $(red $message)\n\n"
+      printf "\n$(red $message)\n"
     fi
   fi
 }
 
 sign_out() {
-  USER_NAME=null
-  USER_EMAIL=null
-  USER_ID=null
-  USER_TOKEN=null
-  USER_EXPIRE=null
-  config user {}
+  config user ""
   printf "  已注销\n\n"
 }
 
@@ -441,18 +417,20 @@ EOF
 }
 
 welcome() {
-  if already_sign_in; then
-    echo "  $USER_NAME，$USER_EMAIL"
+  if [ $USER != "null" ]; then
+    echo "  欢迎，$USER_NAME"
   fi
 }
 
 init_path
 init_params
-load_user_info
+load_user
 
-while getopts c:k:liohf opt; do
+while getopts c:ioh opt; do
   case $opt in
     c) set_channel $OPTARG ;;
+    i) sign_in; exit ;;
+    o) sign_out; exit ;;
     h) print_help; exit ;;
   esac
 done
@@ -460,6 +438,5 @@ done
 trap quit INT
 disable_echo
 hide_cursor
-welcome
 update_and_play n
 mainloop
