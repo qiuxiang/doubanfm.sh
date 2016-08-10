@@ -203,9 +203,9 @@ stars() {
 print_song_info() {
   local length=$(song length)
   local time=$(printf "%d:%02d" $(( length / 60)) $(( length % 60)))
+  echo "$(yellow $(song artist)) $(green $(song title)) ($time) $(heart $(song like))"
+  echo "$(cyan $(song albumtitle), $(song public_time))"
   echo
-  echo "  $(yellow $(song artist)) $(green $(song title)) ($time) $(heart $(song like))"
-  echo "  $(cyan $(song albumtitle) $(song public_time))"
 }
 
 notify_song_info() {
@@ -258,12 +258,10 @@ pause() {
   case $PLAYER_STATE in
     $PLAYER_PLAYING)
       pkill -18 -P $(get_player_pid)
-      PLAYER_STATE=$PLAYER_STOPPED
-      printf "\n  暂停播放\n" ;;
+      PLAYER_STATE=$PLAYER_STOPPED ;;
     $PLAYER_STOPPED)
       pkill -19 -P $(get_player_pid)
-      PLAYER_STATE=$PLAYER_PLAYING
-      printf "\n  恢复播放\n" ;;
+      PLAYER_STATE=$PLAYER_PLAYING ;;
   esac
 }
 
@@ -290,7 +288,7 @@ song_rate() {
   update_playlist $action_type
   local playlist=$(jq ". + [$song] | reverse" < $PATH_PLAYLIST)
   echo $playlist > $PATH_PLAYLIST
-  printf "\n  $message\n"
+  printf "$message\n\n"
 }
 
 song_remove() {
@@ -319,20 +317,20 @@ quit() {
 
 print_commands() {
   cat << EOF
+[$(cyan p)] 暂停或恢复播放
+[$(cyan b)] 不再播放这首歌
+[$(cyan r)] 喜欢这首歌或不再喜欢
+[$(cyan n)] 下一首
+[$(cyan i)] 显示当前歌曲信息
+[$(cyan o)] 在浏览器中打开专辑页面
+[$(cyan q)] 退出
 
-  [$(cyan p)] 暂停或恢复播放
-  [$(cyan b)] 不再播放这首歌
-  [$(cyan r)] 喜欢这首歌或不再喜欢
-  [$(cyan n)] 下一首
-  [$(cyan i)] 显示当前歌曲信息
-  [$(cyan o)] 在浏览器中打开专辑页面
-  [$(cyan q)] 退出
 EOF
 }
 
 sign_in() {
   if [ $USER != "null" ]; then
-    printf "你已经登录，$USER_NAME\n"
+    printf "你已经登录，$USER\n"
   else
     local captcha_id=$(expr $($CURL $HOST/j/new_captcha) : '"\(.*\)"')
     $CURL "$HOST/misc/captcha?id=$captcha_id" > $PATH_CAPTCHA
@@ -418,7 +416,7 @@ EOF
 
 welcome() {
   if [ $USER != "null" ]; then
-    echo "  欢迎，$USER_NAME"
+    printf "欢迎，$USER\n\n"
   fi
 }
 
@@ -426,11 +424,10 @@ init_path
 init_params
 load_user
 
-while getopts c:ioh opt; do
+while getopts c:ih opt; do
   case $opt in
     c) set_channel $OPTARG ;;
     i) sign_in; exit ;;
-    o) sign_out; exit ;;
     h) print_help; exit ;;
   esac
 done
@@ -438,5 +435,6 @@ done
 trap quit INT
 disable_echo
 hide_cursor
+welcome
 update_and_play n
 mainloop
