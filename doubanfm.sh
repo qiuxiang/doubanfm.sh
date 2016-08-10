@@ -13,19 +13,18 @@ PATH_PLAYLIST_INDEX=$PATH_BASE/index
 PATH_CHANNELS=$PATH_BASE/channels.json
 
 PLAYER_PLAYING=0
-PLAYER_STOPED=1
+PLAYER_STOPPED=1
 SONG_DISLIKE=0
 SONG_LIKED=1
 
-BASE_URL=http://douban.com/j/app
+BASE_URL=https://douban.fm/j/mine
 CURL="curl -L -s -c $PATH_COOKIES -b $PATH_COOKIES"
-DEFAULT_CONFIG='{ "kbps": 192, "channel": 0 }'
+DEFAULT_CONFIG='{ "channel": 0 }'
 CHANNEL_FAVORITE=-3
 UNAME=$(uname)
 
-command -v mpg123 > /dev/null && PLAYER=mpg123
 command -v mplayer > /dev/null && PLAYER=mplayer
-test -z "$PLAYER" && echo "mpg123 or mplayer required" && exit 1
+test -z "$PLAYER" && echo "mplayer required" && exit 1
 
 #
 # get or set config
@@ -52,7 +51,6 @@ init_params() {
   PARAMS_VERSION=100
   PARAMS_TYPE=n
   PARAMS_CHANNEL=$(config channel)
-  PARAMS_KBPS=$(config kbps)
 }
 
 red() {
@@ -164,8 +162,7 @@ song() {
 # return: params string
 #
 build_params() {
-  local params="kbps=$PARAMS_KBPS&channel=$PARAMS_CHANNEL"
-  params+="&app_name=$PARAMS_APP_NAME&version=$PARAMS_VERSION"
+  local params="from=mainsite&channel=$PARAMS_CHANNEL"
   params+="&type=$PARAMS_TYPE&sid=$(song sid)"
   already_sign_in && params+="&user_id=$USER_ID&token=$USER_TOKEN&expire=$USER_EXPIRE"
   echo $params
@@ -177,7 +174,7 @@ build_params() {
 #
 request_playlist() {
   PARAMS_TYPE=$1
-  $CURL $BASE_URL/radio/people?$(build_params) | jq .song
+  $CURL $BASE_URL/playlist?$(build_params) | jq .song
 }
 
 get_playlist_length() {
@@ -188,7 +185,7 @@ get_playlist_length() {
 update_playlist() {
   local playlist=$(request_playlist $1)
   echo $playlist > $PATH_PLAYLIST
-  [ $(get_playlist_length) = 0 ] && printf "\n  $(red 播放列表为空)\n" && quit
+  [ $(get_playlist_length) = 0 ] && printf "\n  $(red '播放列表为空')\n" && quit
   playlist_index 0
 }
 
@@ -225,22 +222,20 @@ print_song_info() {
   local length=$(song length)
   local time=$(printf "%d:%02d" $(( length / 60)) $(( length % 60)))
   echo
-  echo "  $(yellow $(song artist)) $(green $(song title)) ($time)"
+  echo "  $(yellow $(song artist)) $(green $(song title)) ($time) $(heart $(song like))"
   echo "  $(cyan $(song albumtitle) $(song public_time))"
-  echo "  $(stars $(song rating_avg)) $(heart $(song like))"
 }
 
 notify_song_info() {
   local title="$(song title) $(heart $(song like))"
   local artist_album="$(song artist) 《$(song albumtitle)》"
-  local stars="$(stars $(song rating_avg))"
 
   case $UNAME in
     Linux)
       notify-send "$title" "$artist_album\n$stars" -i "$(song picture_path)" ;;
     Darwin)
       terminal-notifier -title "$title" -subtitle "$artist_album" \
-        -message "$stars" -appIcon "$(song picture_path)" -group "$0" ;;
+        -message "" -contentImage "$(song picture_path)" ;;
   esac
 }
 
@@ -280,11 +275,11 @@ update_and_play() {
 pause() {
   case $PLAYER_STATE in
     $PLAYER_PLAYING)
-      pkill -19 -P $(get_player_pid)
-      PLAYER_STATE=$PLAYER_STOPED
-      printf "\n  暂停播放\n" ;;
-    $PLAYER_STOPED)
       pkill -18 -P $(get_player_pid)
+      PLAYER_STATE=$PLAYER_STOPPED
+      printf "\n  暂停播放\n" ;;
+    $PLAYER_STOPPED)
+      pkill -19 -P $(get_player_pid)
       PLAYER_STATE=$PLAYER_PLAYING
       printf "\n  恢复播放\n" ;;
   esac
@@ -299,18 +294,18 @@ song_skip() {
 }
 
 song_rate() {
+  local like=$SONG_DISLIKE
+  local action_type=u
+  local message="不再喜欢"
+
   if [ $(song like) = $SONG_DISLIKE ]; then
     local like=$SONG_LIKED
-    local opration_type=r
-    local message=喜欢这首歌
-  else
-    local like=$SONG_DISLIKE
-    local opration_type=u
-    local message=不再喜欢
+    local action_type=r
+    local message="喜欢这首歌"
   fi
 
   local song=$(jq ".[$(playlist_index)] | .like=$like" < $PATH_PLAYLIST)
-  update_playlist $opration_type
+  update_playlist $action_type
   local playlist=$(jq ". + [$song] | reverse" < $PATH_PLAYLIST)
   echo $playlist > $PATH_PLAYLIST
   printf "\n  $message\n"
@@ -341,27 +336,6 @@ get_channels() {
   cat $PATH_CHANNELS
 }
 
-print_channels() {
-  local channels=$(get_channels)
-  local channels_length=$(echo $channels | jq length)
-
-  if [ $PARAMS_CHANNEL = $CHANNEL_FAVORITE ]; then
-    echo "→ $(cyan 红心兆赫)($CHANNEL_FAVORITE)"
-  else
-    echo "  $(cyan 红心兆赫)($CHANNEL_FAVORITE)"
-  fi
-
-  for (( i = 0; i < channels_length; i++ )) do
-    local channel_id=$(echo $channels | jq -r .[$i].channel_id)
-    local name=$(echo $channels | jq -r .[$i].name)
-    if [ $i = $PARAMS_CHANNEL ]; then
-      echo "→ $(cyan $name)($channel_id)"
-    else
-      echo "  $(cyan $name)($channel_id)"
-    fi
-  done
-}
-
 quit() {
   pkill -P $(get_player_pid) > /dev/null 2>&1
   show_cursor
@@ -377,7 +351,7 @@ print_commands() {
   [$(cyan r)] 喜欢这首歌或不再喜欢
   [$(cyan n)] 下一首
   [$(cyan i)] 显示当前歌曲信息
-  [$(cyan i)] 在浏览器中打开专辑页面
+  [$(cyan o)] 在浏览器中打开专辑页面
   [$(cyan q)] 退出
 EOF
 }
@@ -422,8 +396,8 @@ sign_out() {
   printf "  已注销\n\n"
 }
 
-open_in_brower() {
-  xdg-open $(song album_url) > /dev/null 2>&1
+open_in_browser() {
+  open $(song album_url) > /dev/null 2>&1
 }
 
 mainloop() {
@@ -431,27 +405,17 @@ mainloop() {
     read -n 1 c
     case ${c:0:1} in
       i) print_song_info; notify_song_info ;;
-      o) open_in_brower ;;
+      o) open_in_browser ;;
       p) pause ;;
       n) song_skip ;;
       N) play_next ;;
       r) song_rate ;;
       b) song_remove ;;
-      c) print_channels ;;
       l) print_playlist ;;
       q) quit ;;
       h) print_commands ;;
     esac
   done
-}
-
-set_kbps() {
-  if [[ $1 =~ 64|128|192 ]]; then
-    PARAMS_KBPS=$1
-    config kbps $1
-  else
-    printf "  $(red 有效的码率为 64、128、192)\n\n"
-  fi
 }
 
 #
@@ -462,39 +426,16 @@ set_channel() {
     PARAMS_CHANNEL=$1
     config channel $1
   else
-    printf "  $(red channel_id 应该是数字)\n\n"
+    printf "  $(red channel_id '应该是数字')\n\n"
   fi
-}
-
-get_liked_songs() {
-  local songs=$($CURL "$BASE_URL/radio/liked_songs?$(build_params)&count=999" | jq .songs)
-  local songs_length=$(echo $songs | jq length)
-  local result="title=红心歌曲\n\n"
-  for (( i = 0; i < songs_length; i++ )) do
-    result+="uri=$(echo $songs | jq -r ".[$i].url")\n"
-    result+="artist=$(echo $songs | jq -r ".[$i].artist")\n"
-    result+="title=$(echo $songs | jq -r ".[$i].title")\n"
-    result+="album=$(echo $songs | jq -r ".[$i].albumtitle")\n"
-    result+="year=$(echo $songs | jq -r ".[$i].public_time")\n"
-    result+="length=$(echo $songs | jq -r ".[$i].length")000\n"
-    result+="bitrate=$(echo $songs | jq -r ".[$i].kbps")\n"
-    result+="codec=MPEG-1 layer 3\n"
-    result+="quality=Stereo, 44100 Hz\n\n"
-  done
-  echo -e $result > 红心歌曲.audpl
-  echo -e "  成功导出到“红心歌曲.audpl”\n"
 }
 
 print_help() {
   cat << EOF
-  用法：doubanfm [-c channel_id | -k kbps]
+  用法：doubanfm [-c channel_id]
 
   选项：
     -c channel_id    选择兆赫，用 -l 参数可以查看可用的兆赫
-    -k kbps          设置码率，有效值为 64、128、192
-    -l               显示频道列表
-    -i               登录
-    -o               注销
 
 EOF
 }
@@ -502,18 +443,9 @@ EOF
 welcome() {
   if already_sign_in; then
     echo "  $USER_NAME，$USER_EMAIL"
-  else
-    echo "  $(yellow 未登录)"
-  fi
-
-  if [ $PARAMS_CHANNEL = $CHANNEL_FAVORITE ]; then
-    echo "  $(red 红心兆赫)"
-  else
-    echo "  $(get_channels | jq -r .[$PARAMS_CHANNEL].name)"
   fi
 }
 
-echo
 init_path
 init_params
 load_user_info
@@ -521,11 +453,6 @@ load_user_info
 while getopts c:k:liohf opt; do
   case $opt in
     c) set_channel $OPTARG ;;
-    k) set_kbps $OPTARG ;;
-    l) print_channels; echo; exit ;;
-    i) sign_in; exit ;;
-    o) sign_out; exit ;;
-    f) get_liked_songs; exit ;;
     h) print_help; exit ;;
   esac
 done
