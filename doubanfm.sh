@@ -275,6 +275,7 @@ song_rate() {
 }
 
 song_remove() {
+  printf "不再播放这首歌\n\n"
   update_and_play b
 }
 
