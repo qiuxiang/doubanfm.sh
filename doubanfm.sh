@@ -281,7 +281,6 @@ song_remove() {
 quit() {
   pkill -P $(get_player_pid) > /dev/null 2>&1
   show_cursor
-  echo
   exit
 }
 
@@ -305,8 +304,6 @@ sign_in() {
     local captcha_id=$(expr $($CURL $HOST/j/new_captcha) : '"\(.*\)"')
     $CURL "$HOST/misc/captcha?id=$captcha_id" > $PATH_CAPTCHA
     open $PATH_CAPTCHA
-#    local email="xiang.qiu@qq.com"
-#    local password="a2099420"
 
     enable_echo
     show_cursor
@@ -337,7 +334,7 @@ sign_in() {
 
 sign_out() {
   config user ""
-  printf "  已注销\n\n"
+  printf "已注销\n\n"
 }
 
 open_in_browser() {
@@ -369,7 +366,7 @@ set_channel() {
     PARAMS_CHANNEL=$1
     config channel $1
   else
-    printf "  $(red channel_id '应该是数字')\n\n"
+    printf "$(red channel_id '应该是数字')\n\n"
   fi
 }
 
@@ -378,7 +375,7 @@ print_help() {
   用法：doubanfm [-c channel_id]
 
   选项：
-    -c channel_id    选择兆赫，用 -l 参数可以查看可用的兆赫
+    -c channel_id
 
 EOF
 }
@@ -386,6 +383,8 @@ EOF
 welcome() {
   if [ $USER != "null" ]; then
     printf "欢迎，$USER\n\n"
+  else
+    echo
   fi
 }
 
